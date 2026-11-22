@@ -1,0 +1,123 @@
+/*
+ * Tokens visuales de Saria (dirección "Laguna", paleta Cobalto).
+ *
+ * Los valores viven en variables por tema bajo :root[data-theme]; @theme inline
+ * las expone como utilidades de Tailwind (bg-fondo, text-texto, text-agua...)
+ * que cambian solas al cambiar data-theme. Sin data-theme se usa el oscuro,
+ * que es el tema principal.
+ */
+
+:root,
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  --fondo: #070f22;
+  --superficie: #0e1a33;
+  --superficie-2: #16264a;
+  --barra: #0b1530;
+  --borde: #16264a;
+  --texto: #e6ecf8;
+  --texto-suave: #8e9cc0;
+  --cobalto: #2f5be0;
+  --sobre-cobalto: #ffffff;
+  --agua: #5fe0c2;
+  --sobre-agua: #070f22;
+  --gasto: #ff8a7a;
+  --foco: #5fe0c2;
+
+  /* Degradado del nivel de agua (tarjeta de Inicio). */
+  --nivel-arriba: #2f5be0;
+  --nivel-abajo: #1b3a9e;
+}
+
+:root[data-theme='light'] {
+  color-scheme: light;
+
+  --fondo: #eef2fa;
+  --superficie: #ffffff;
+  --superficie-2: #dce3f2;
+  --barra: #ffffff;
+  --borde: #dce3f2;
+  --texto: #0e1a33;
+  --texto-suave: #55638a;
+  --cobalto: #2447b8;
+  --sobre-cobalto: #ffffff;
+  /* El verde agua de la paleta oscura no contrasta sobre fondo claro: se oscurece para texto. */
+  --agua: #0b7a66;
+  --sobre-agua: #ffffff;
+  --gasto: #c9473a;
+  --foco: #2447b8;
+
+  --nivel-arriba: #3b6cf6;
+  --nivel-abajo: #2447b8;
+}
+
+@theme inline {
+  --font-sans:
+    'Bricolage Grotesque Variable', ui-sans-serif, system-ui, sans-serif;
+
+  --color-fondo: var(--fondo);
+  --color-superficie: var(--superficie);
+  --color-superficie-2: var(--superficie-2);
+  --color-barra: var(--barra);
+  --color-borde: var(--borde);
+  --color-texto: var(--texto);
+  --color-texto-suave: var(--texto-suave);
+  --color-cobalto: var(--cobalto);
+  --color-sobre-cobalto: var(--sobre-cobalto);
+  --color-agua: var(--agua);
+  --color-sobre-agua: var(--sobre-agua);
+  --color-gasto: var(--gasto);
+  --color-foco: var(--foco);
+
+  --color-nivel-arriba: var(--nivel-arriba);
+  --color-nivel-abajo: var(--nivel-abajo);
+}
+
+@theme {
+  /* La tarjeta del nivel de agua es oscura en ambos temas. */
+  --color-nivel-tarjeta: #0e1a33;
+  --color-nivel-texto: #e6ecf8;
+  --color-nivel-superficie: #5fe0c2;
+
+  /*
+   * Escala tipográfica (base 16 px, una sola familia). Tailwind aporta xs–4xl;
+   * estos pasos nombran los usos fijos de la app.
+   */
+  --text-etiqueta: 0.8125rem; /* 13 px: mes, encabezados de lista */
+  --text-etiqueta--line-height: 1.25rem;
+  --text-etiqueta--font-weight: 500;
+  --text-titulo: 1.375rem; /* 22 px: saludo y títulos de pantalla */
+  --text-titulo--line-height: 1.2;
+  --text-titulo--letter-spacing: -0.01em;
+  --text-titulo--font-weight: 600;
+  --text-cifra: 2.75rem; /* 44 px: lo que te queda del mes */
+  --text-cifra--line-height: 1;
+  --text-cifra--letter-spacing: -0.02em;
+  --text-cifra--font-weight: 800;
+
+  --radius-tarjeta: 1.5rem;
+  --radius-boton: 1.25rem;
+}
+
+@utility cifras {
+  font-variant-numeric: tabular-nums;
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    @apply bg-fondo font-sans text-texto antialiased;
+    font-optical-sizing: auto;
+    min-height: 100dvh;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--foco);
+    outline-offset: 2px;
+  }
+}

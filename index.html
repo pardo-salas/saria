@@ -2,8 +2,27 @@
 <html lang="es-MX">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#070F22" />
+    <meta name="color-scheme" content="dark light" />
     <title>Saria</title>
+    <script>
+      // Aplica el tema antes del primer pintado (ver src/app/ThemeProvider.tsx).
+      ;(function () {
+        var p
+        try {
+          p = localStorage.getItem('saria.theme')
+        } catch (e) {}
+        if (p !== 'light' && p !== 'dark')
+          p = matchMedia('(prefers-color-scheme: dark)').matches
+            ? 'dark'
+            : 'light'
+        document.documentElement.dataset.theme = p
+      })()
+    </script>
   </head>
   <body>
     <div id="root"></div>
