@@ -218,35 +218,35 @@ create table public.settings (
 -- Triggers updated_at
 -- ---------------------------------------------------------------------------
 create trigger accounts_set_updated_at
-  before update on public.accounts
+  before insert or update on public.accounts
   for each row execute function public.set_updated_at();
 
 create trigger categories_set_updated_at
-  before update on public.categories
+  before insert or update on public.categories
   for each row execute function public.set_updated_at();
 
 create trigger installment_plans_set_updated_at
-  before update on public.installment_plans
+  before insert or update on public.installment_plans
   for each row execute function public.set_updated_at();
 
 create trigger recurring_payments_set_updated_at
-  before update on public.recurring_payments
+  before insert or update on public.recurring_payments
   for each row execute function public.set_updated_at();
 
 create trigger transactions_set_updated_at
-  before update on public.transactions
+  before insert or update on public.transactions
   for each row execute function public.set_updated_at();
 
 create trigger transfers_set_updated_at
-  before update on public.transfers
+  before insert or update on public.transfers
   for each row execute function public.set_updated_at();
 
 create trigger reminders_set_updated_at
-  before update on public.reminders
+  before insert or update on public.reminders
   for each row execute function public.set_updated_at();
 
 create trigger settings_set_updated_at
-  before update on public.settings
+  before insert or update on public.settings
   for each row execute function public.set_updated_at();
 
 -- ---------------------------------------------------------------------------
@@ -324,3 +324,13 @@ revoke delete on public.transactions from anon, authenticated;
 revoke delete on public.transfers from anon, authenticated;
 revoke delete on public.reminders from anon, authenticated;
 revoke delete on public.settings from anon, authenticated;
+
+-- Privilegios explícitos (Supabase ya los concede por defecto; no incluye delete).
+grant select, insert, update on public.accounts to authenticated;
+grant select, insert, update on public.categories to authenticated;
+grant select, insert, update on public.installment_plans to authenticated;
+grant select, insert, update on public.recurring_payments to authenticated;
+grant select, insert, update on public.transactions to authenticated;
+grant select, insert, update on public.transfers to authenticated;
+grant select, insert, update on public.reminders to authenticated;
+grant select, insert, update on public.settings to authenticated;

@@ -73,4 +73,4 @@ Así nadie más puede crear una cuenta; la app tampoco ofrece esa opción.
 
 ## Nota para Fase 2
 
-El trigger `set_updated_at` fija `updated_at` con la hora del servidor. El motor de sync debe usar esa hora para el pull incremental y tenerlo en cuenta al decidir "el último cambio gana".
+El trigger `set_updated_at` fija `updated_at` con la hora del servidor tanto en insert como en update (así una fila creada sin conexión y subida después aparece en el pull incremental de otros dispositivos). El motor de sync debe usar esa hora para el pull incremental y tenerlo en cuenta al decidir "el último cambio gana".

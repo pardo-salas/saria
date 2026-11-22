@@ -70,7 +70,7 @@ describe('paridad Dexie <-> migraciones SQL', () => {
     it('tiene trigger set_updated_at', () => {
       expect(sql).toMatch(
         new RegExp(
-          `create trigger \\w+\\s+before update on public\\.${t}\\s+for each row execute function public\\.set_updated_at\\(\\)`,
+          `create trigger \\w+\\s+before insert or update on public\\.${t}\\s+for each row execute function public\\.set_updated_at\\(\\)`,
           'i',
         ),
       )
