@@ -101,6 +101,18 @@
   --color-nivel-superficie: #5fe0c2;
 
   /*
+   * El agua sube una sola vez al montar: solo se declara `from`, así que
+   * termina en la altura en línea del elemento (el nivel real).
+   */
+  --animate-subir-agua: subir-agua 1.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+
+  @keyframes subir-agua {
+    from {
+      height: 0;
+    }
+  }
+
+  /*
    * Escala tipográfica (base 16 px, una sola familia). Tailwind aporta xs–4xl;
    * estos pasos nombran los usos fijos de la app.
    */
