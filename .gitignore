@@ -1,0 +1,17 @@
+# Datos financieros reales y secretos: NUNCA se suben
+data/
+.env*
+!.env.example
+
+# Dependencias y builds
+node_modules/
+dist/
+dev-dist/
+coverage/
+playwright-report/
+test-results/
+*.log
+.DS_Store
+
+# Mockups de brainstorming
+.superpowers/
