@@ -82,7 +82,10 @@ export function createRepo(
 
 let userSource: () => string | null = () => null
 
-/** `useSession` la fija con el usuario actual; al cerrar sesión regresa null. */
+/**
+ * `SessionValueProvider` (src/app/SessionProvider.tsx) la fija con el usuario
+ * actual en cada render; al cerrar sesión regresa null.
+ */
 export function setRepoUserSource(fn: () => string | null): void {
   userSource = fn
 }

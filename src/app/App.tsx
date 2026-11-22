@@ -1,7 +1,13 @@
+import { BrowserRouter } from 'react-router'
+import { AppRoutes } from './router'
+import { SessionProvider } from './SessionProvider'
+
 export function App() {
   return (
-    <main>
-      <h1>Saria</h1>
-    </main>
+    <SessionProvider>
+      <BrowserRouter>
+        <AppRoutes />
+      </BrowserRouter>
+    </SessionProvider>
   )
 }

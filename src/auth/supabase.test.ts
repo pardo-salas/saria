@@ -45,4 +45,14 @@ describe('supabase (Review Focus 4)', () => {
       },
     })
   })
+
+  it('con una URL mal formada (createClient lanza) getSupabase regresa null', async () => {
+    vi.stubEnv('VITE_SUPABASE_URL', 'no-es-una-url')
+    vi.stubEnv('VITE_SUPABASE_ANON_KEY', 'anon')
+    createClient.mockImplementationOnce(() => {
+      throw new Error('Invalid supabaseUrl')
+    })
+    const { getSupabase } = await import('./supabase')
+    expect(getSupabase()).toBeNull()
+  })
 })

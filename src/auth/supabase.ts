@@ -20,26 +20,31 @@ let client: SupabaseClient | null = null
 /**
  * Cliente único, creado de forma perezosa: importar este módulo nunca lanza
  * aunque falten las variables `VITE_*` (la app muestra el aviso de
- * configuración en lugar de una pantalla en blanco).
+ * configuración en lugar de una pantalla en blanco). Lo mismo si la URL está
+ * mal formada: `createClient` lanza y aquí se regresa null.
  */
 export function getSupabase(): SupabaseClient | null {
   if (client) return client
   if (!isConfigured()) return null
-  client = createClient(
-    import.meta.env.VITE_SUPABASE_URL as string,
-    import.meta.env.VITE_SUPABASE_ANON_KEY as string,
-    {
-      auth: {
-        persistSession: true,
-        autoRefreshToken: true,
-        // El enlace de restablecer contraseña llega a /restablecer con la
-        // sesión de recuperación en la URL; supabase-js la detecta y emite
-        // PASSWORD_RECOVERY.
-        detectSessionInUrl: true,
-        storageKey: AUTH_STORAGE_KEY,
-        storage: localStorage,
+  try {
+    client = createClient(
+      import.meta.env.VITE_SUPABASE_URL as string,
+      import.meta.env.VITE_SUPABASE_ANON_KEY as string,
+      {
+        auth: {
+          persistSession: true,
+          autoRefreshToken: true,
+          // El enlace de restablecer contraseña llega a /restablecer con la
+          // sesión de recuperación en la URL; supabase-js la detecta y emite
+          // PASSWORD_RECOVERY.
+          detectSessionInUrl: true,
+          storageKey: AUTH_STORAGE_KEY,
+          storage: localStorage,
+        },
       },
-    },
-  )
+    )
+  } catch {
+    return null
+  }
   return client
 }
