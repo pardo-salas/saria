@@ -23,7 +23,10 @@
   --agua: #5fe0c2;
   --sobre-agua: #070f22;
   --gasto: #ff8a7a;
+  --sobre-gasto: #070f22;
   --foco: #5fe0c2;
+  /* Velo detrás de hojas modales: oscurece la página en ambos temas. */
+  --velo: rgb(2 6 16 / 0.72);
 
   /* Degradado del nivel de agua (tarjeta de Inicio). */
   --nivel-arriba: #2f5be0;
@@ -46,7 +49,9 @@
   --agua: #0b7a66;
   --sobre-agua: #ffffff;
   --gasto: #c9473a;
+  --sobre-gasto: #ffffff;
   --foco: #2447b8;
+  --velo: rgb(14 26 51 / 0.45);
 
   --nivel-arriba: #3b6cf6;
   --nivel-abajo: #2447b8;
@@ -68,7 +73,9 @@
   --color-agua: var(--agua);
   --color-sobre-agua: var(--sobre-agua);
   --color-gasto: var(--gasto);
+  --color-sobre-gasto: var(--sobre-gasto);
   --color-foco: var(--foco);
+  --color-velo: var(--velo);
 
   --color-nivel-arriba: var(--nivel-arriba);
   --color-nivel-abajo: var(--nivel-abajo);
