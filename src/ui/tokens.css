@@ -27,6 +27,11 @@
   --foco: #5fe0c2;
   /* Velo detrás de hojas modales: oscurece la página en ambos temas. */
   --velo: rgb(2 6 16 / 0.72);
+  /* Pestaña activa y botón + como en el mockup aprobado (estilo-visual-v2). */
+  --nav-activo: #5fe0c2;
+  --nav-activo-icono: #5fe0c2;
+  --fab: #5fe0c2;
+  --sobre-fab: #070f22;
 
   /* Degradado del nivel de agua (tarjeta de Inicio). */
   --nivel-arriba: #2f5be0;
@@ -52,6 +57,10 @@
   --sobre-gasto: #ffffff;
   --foco: #2447b8;
   --velo: rgb(14 26 51 / 0.45);
+  --nav-activo: #2447b8;
+  --nav-activo-icono: #ffffff;
+  --fab: #0e1a33;
+  --sobre-fab: #5fe0c2;
 
   --nivel-arriba: #3b6cf6;
   --nivel-abajo: #2447b8;
@@ -76,6 +85,10 @@
   --color-sobre-gasto: var(--sobre-gasto);
   --color-foco: var(--foco);
   --color-velo: var(--velo);
+  --color-nav-activo: var(--nav-activo);
+  --color-nav-activo-icono: var(--nav-activo-icono);
+  --color-fab: var(--fab);
+  --color-sobre-fab: var(--sobre-fab);
 
   --color-nivel-arriba: var(--nivel-arriba);
   --color-nivel-abajo: var(--nivel-abajo);

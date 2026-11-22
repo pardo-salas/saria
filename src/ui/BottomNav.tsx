@@ -28,14 +28,14 @@ export function BottomNav({ items }: { items: NavItem[] }) {
                 [
                   'group flex min-h-16 flex-col items-center justify-center gap-1 text-[0.6875rem] leading-4',
                   isActive
-                    ? 'font-semibold text-texto'
+                    ? 'font-semibold text-nav-activo'
                     : 'text-texto-suave hover:text-texto',
                 ].join(' ')
               }
             >
               <span
                 aria-hidden="true"
-                className="flex h-8 w-14 items-center justify-center rounded-full transition-colors duration-150 group-aria-[current=page]:bg-cobalto group-aria-[current=page]:text-sobre-cobalto [&>svg]:size-6"
+                className="flex h-8 w-14 items-center justify-center rounded-full transition-colors duration-150 group-aria-[current=page]:bg-cobalto group-aria-[current=page]:text-nav-activo-icono [&>svg]:size-6"
               >
                 {item.icon}
               </span>
