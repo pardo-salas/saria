@@ -1,0 +1,9 @@
+docs/
+dist/
+dev-dist/
+coverage/
+playwright-report/
+test-results/
+.superpowers/
+.claude/
+package-lock.json
