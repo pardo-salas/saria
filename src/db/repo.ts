@@ -1,4 +1,4 @@
-import type { SariaDB } from './dexie'
+import { db, type SariaDB } from './dexie'
 import type { RowOf, SyncedRow, SyncedTableName } from './schema'
 
 export class NotSignedInError extends Error {
@@ -79,3 +79,12 @@ export function createRepo(
 
   return { put, softDelete }
 }
+
+let userSource: () => string | null = () => null
+
+/** `useSession` la fija con el usuario actual; al cerrar sesión regresa null. */
+export function setRepoUserSource(fn: () => string | null): void {
+  userSource = fn
+}
+
+export const repo = createRepo(db, () => userSource())

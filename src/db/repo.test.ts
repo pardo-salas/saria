@@ -1,6 +1,11 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { createDb, type SariaDB } from './dexie'
-import { createRepo, NotSignedInError } from './repo'
+import { db as appDb, createDb, type SariaDB } from './dexie'
+import {
+  createRepo,
+  NotSignedInError,
+  repo as appRepo,
+  setRepoUserSource,
+} from './repo'
 
 const opened: SariaDB[] = []
 
@@ -187,5 +192,25 @@ describe('repo', () => {
       NotSignedInError,
     )
     expect(await db.outbox.count()).toBe(0)
+  })
+})
+
+describe('repo de la app', () => {
+  afterEach(async () => {
+    setRepoUserSource(() => null)
+    await appDb.delete()
+  })
+
+  it('usa el usuario que fija setRepoUserSource', async () => {
+    await expect(appRepo.put('accounts', account)).rejects.toBeInstanceOf(
+      NotSignedInError,
+    )
+    setRepoUserSource(() => 'u-app')
+    const saved = await appRepo.put('accounts', account)
+    expect(saved.user_id).toBe('u-app')
+    setRepoUserSource(() => null)
+    await expect(
+      appRepo.softDelete('accounts', saved.id),
+    ).rejects.toBeInstanceOf(NotSignedInError)
   })
 })
