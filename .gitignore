@@ -15,3 +15,6 @@ test-results/
 
 # Mockups de brainstorming
 .superpowers/
+
+# Worktrees de Claude Code
+.claude/worktrees/
