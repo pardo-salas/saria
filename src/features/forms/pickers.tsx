@@ -306,8 +306,9 @@ export function ConfirmStep({
         <button
           ref={cancelRef}
           type="button"
+          disabled={busy}
           onClick={onCancel}
-          className="min-h-12 flex-1 cursor-pointer rounded-boton bg-superficie px-5 text-base font-semibold text-texto"
+          className="min-h-12 flex-1 cursor-pointer rounded-boton bg-superficie px-5 text-base font-semibold text-texto disabled:cursor-not-allowed disabled:opacity-50"
         >
           Cancelar
         </button>

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useFinance, useToday } from '../../db/queries'
 import { repo } from '../../db/repo'
 import type { Transaction } from '../../db/schema'
@@ -117,13 +117,18 @@ function TransactionForm({
     categories.push(current)
   }
 
+  const inFlight = useRef(false)
+
   async function run(action: () => Promise<void>, done: string) {
+    if (inFlight.current) return
+    inFlight.current = true
     setBusy(true)
     try {
       await action()
       toast.show({ message: done })
       onClose()
     } catch {
+      inFlight.current = false
       setBusy(false)
       setConfirmDelete(false)
       toast.show({ message: 'No se pudo guardar. Intenta de nuevo' })
@@ -235,11 +240,20 @@ function TransactionForm({
         />
       ) : (
         <div className="flex flex-col gap-2">
-          <Button variant="primaria" type="submit" loading={busy}>
+          <Button
+            variant="primaria"
+            type="submit"
+            loading={busy}
+            disabled={!finance}
+          >
             Guardar
           </Button>
           {transaction && (
-            <Button variant="fantasma" onClick={() => setConfirmDelete(true)}>
+            <Button
+              variant="fantasma"
+              disabled={busy}
+              onClick={() => setConfirmDelete(true)}
+            >
               Borrar
             </Button>
           )}

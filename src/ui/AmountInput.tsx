@@ -9,6 +9,8 @@ export interface AmountInputProps {
   error?: string
   autoFocus?: boolean
   inputRef?: Ref<HTMLInputElement>
+  /** Avisa si el texto escrito es un monto válido (vacío cuenta como válido). */
+  onValidityChange?(valid: boolean): void
 }
 
 const MESSAGES: Record<Exclude<ParseError, 'empty'>, string> = {
@@ -39,6 +41,7 @@ export function AmountInput({
   error,
   autoFocus,
   inputRef,
+  onValidityChange,
 }: AmountInputProps) {
   const id = useId()
   const errorId = `${id}-error`
@@ -100,6 +103,7 @@ export function AmountInput({
             const result = parseToCents(next)
             const emittedCents = result.ok ? result.cents : null
             onChange(emittedCents)
+            onValidityChange?.(next.trim() === '' || result.ok)
           }}
           onBlur={() => {
             setFocused(false)

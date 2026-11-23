@@ -23,7 +23,7 @@ describe('AccountSheet', () => {
     open()
     await user.type(screen.getByLabelText('Nombre'), 'Tarjeta Azul')
     await user.click(screen.getByRole('radio', { name: 'Crédito' }))
-    await user.type(screen.getByLabelText('Debes'), '2,859.36')
+    await user.type(screen.getByLabelText('Saldo inicial'), '2,859.36')
     await user.click(screen.getByRole('button', { name: 'Guardar' }))
     await waitFor(async () => expect(await db.accounts.count()).toBe(2))
     const saved = (await db.accounts.toArray()).find(
@@ -33,6 +33,47 @@ describe('AccountSheet', () => {
     expect(saved.type).toBe('credit')
     expect(saved.position).toBe(5)
     expect(saved.include_in_total).toBe(true)
+  })
+
+  it('editar una cuenta de débito con saldo negativo lo conserva', async () => {
+    const a = acct({ id: 'a1', initial_balance_cents: -50000 })
+    await db.accounts.put(a)
+    const user = userEvent.setup()
+    open(a)
+    expect(
+      await screen.findByRole('radio', { name: 'En contra' }),
+    ).toBeChecked()
+    await user.click(screen.getByRole('button', { name: 'Guardar' }))
+    await waitFor(async () =>
+      expect((await db.accounts.get('a1'))?.updated_at).not.toBe(a.updated_at),
+    )
+    expect((await db.accounts.get('a1'))?.initial_balance_cents).toBe(-50000)
+  })
+
+  it('crédito "A favor" guarda el saldo en positivo', async () => {
+    const user = userEvent.setup()
+    open()
+    await user.type(screen.getByLabelText('Nombre'), 'Tarjeta')
+    await user.click(screen.getByRole('radio', { name: 'Crédito' }))
+    expect(screen.getByRole('radio', { name: 'Debes' })).toBeChecked()
+    await user.click(screen.getByRole('radio', { name: 'A favor' }))
+    await user.type(screen.getByLabelText('Saldo inicial'), '1000')
+    await user.click(screen.getByRole('button', { name: 'Guardar' }))
+    await waitFor(async () => expect(await db.accounts.count()).toBe(1))
+    expect((await db.accounts.toArray())[0]?.initial_balance_cents).toBe(100000)
+  })
+
+  it('un saldo inválido no se guarda', async () => {
+    const user = userEvent.setup()
+    open()
+    await user.type(screen.getByLabelText('Nombre'), 'Cuenta')
+    await user.type(screen.getByLabelText('Saldo inicial'), '12x')
+    await user.click(screen.getByRole('button', { name: 'Guardar' }))
+    expect(
+      await screen.findByText('Escribe un monto válido'),
+    ).toBeInTheDocument()
+    expect(screen.getByLabelText('Saldo inicial')).toHaveFocus()
+    expect(await db.accounts.count()).toBe(0)
   })
 
   it('con el nombre vacío muestra el error y no guarda', async () => {

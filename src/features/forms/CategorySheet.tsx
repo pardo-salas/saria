@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useFinance } from '../../db/queries'
 import { repo, type NewRow } from '../../db/repo'
 import type { Category } from '../../db/schema'
@@ -56,10 +56,16 @@ function CategoryForm({
   const [limit, setLimit] = useState<number | null>(
     category?.monthly_limit_cents ?? null,
   )
-  const [icon, setIcon] = useState<string | null>(category?.icon ?? 'otros')
-  const [color, setColor] = useState<string | null>(
-    category?.color ?? colorAt(0),
+  // Una categoría existente conserva su icono y color (aunque sean null).
+  const [icon, setIcon] = useState<string | null>(
+    category ? category.icon : 'otros',
   )
+  const [color, setColor] = useState<string | null>(
+    category ? category.color : colorAt(0),
+  )
+  const [limitValid, setLimitValid] = useState(true)
+  const limitRef = useRef<HTMLInputElement>(null)
+  const inFlight = useRef(false)
   const [errors, setErrors] = useState<{ name?: string; limit?: string }>({})
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -69,12 +75,15 @@ function CategoryForm({
     : false
 
   async function run(action: () => Promise<void>, done: string) {
+    if (inFlight.current) return
+    inFlight.current = true
     setBusy(true)
     try {
       await action()
       toast.show({ message: done })
       onClose()
     } catch {
+      inFlight.current = false
       setBusy(false)
       setConfirmDelete(false)
       toast.show({ message: 'No se pudo guardar. Intenta de nuevo' })
@@ -82,6 +91,10 @@ function CategoryForm({
   }
 
   function save() {
+    if (kind === 'expense' && !limitValid) {
+      limitRef.current?.focus()
+      return
+    }
     const monthly = kind === 'expense' ? limit : null
     const result = validateCategory(
       { id: category?.id, name, kind, monthly_limit_cents: monthly },
@@ -97,6 +110,7 @@ function CategoryForm({
     setErrors({})
     void run(async () => {
       await repo.put('categories', {
+        ...(category ? rowOf(category) : null),
         id: category?.id,
         name: name.trim(),
         kind,
@@ -154,6 +168,8 @@ function CategoryForm({
             valueCents={limit}
             onChange={setLimit}
             error={errors.limit}
+            onValidityChange={setLimitValid}
+            inputRef={limitRef}
           />
         </div>
       )}
@@ -175,13 +191,19 @@ function CategoryForm({
         />
       ) : (
         <div className="flex flex-col gap-2">
-          <Button variant="primaria" type="submit" loading={busy}>
+          <Button
+            variant="primaria"
+            type="submit"
+            loading={busy}
+            disabled={!finance}
+          >
             Guardar
           </Button>
           {category && (
             <>
               <Button
                 variant="secundaria"
+                disabled={busy}
                 onClick={() => setArchived(!category.archived)}
               >
                 {category.archived ? 'Desarchivar' : 'Archivar'}
@@ -193,6 +215,7 @@ function CategoryForm({
               ) : (
                 <Button
                   variant="fantasma"
+                  disabled={busy}
                   onClick={() => setConfirmDelete(true)}
                 >
                   Borrar

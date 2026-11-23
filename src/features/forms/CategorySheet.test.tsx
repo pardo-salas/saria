@@ -29,6 +29,22 @@ describe('CategorySheet', () => {
     })
   })
 
+  it('un límite inválido no se guarda', async () => {
+    const user = userEvent.setup()
+    render(
+      <Providers>
+        <CategorySheet open onClose={() => {}} kind="expense" />
+      </Providers>,
+    )
+    await user.type(screen.getByLabelText('Nombre'), 'Café')
+    await user.type(screen.getByLabelText('Límite mensual (opcional)'), 'abc')
+    await user.click(screen.getByRole('button', { name: 'Guardar' }))
+    expect(
+      await screen.findByText('Escribe un monto válido'),
+    ).toBeInTheDocument()
+    expect(await db.categories.count()).toBe(0)
+  })
+
   it('una categoría duplicada muestra el mensaje exacto', async () => {
     await db.categories.put(cat({ id: 'c1', name: 'Comida' }))
     const user = userEvent.setup()

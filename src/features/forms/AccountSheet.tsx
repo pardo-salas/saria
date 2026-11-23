@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useFinance } from '../../db/queries'
 import { repo, type NewRow } from '../../db/repo'
 import type { Account } from '../../db/schema'
@@ -47,6 +47,7 @@ export function AccountSheet({ open, onClose, account }: AccountSheetProps) {
   )
 }
 
+type Sign = 'pos' | 'neg'
 type Pending = 'archive' | 'delete' | null
 
 function AccountForm({
@@ -64,10 +65,20 @@ function AccountForm({
     account ? Math.abs(account.initial_balance_cents) : null,
   )
   const [inTotal, setInTotal] = useState(account?.include_in_total ?? true)
-  const [icon, setIcon] = useState<string | null>(account?.icon ?? 'cartera')
-  const [color, setColor] = useState<string | null>(
-    account?.color ?? colorAt(0),
+  // Una cuenta existente conserva su icono y color (aunque sean null).
+  const [icon, setIcon] = useState<string | null>(
+    account ? account.icon : 'cartera',
   )
+  const [color, setColor] = useState<string | null>(
+    account ? account.color : colorAt(0),
+  )
+  // El monto se captura siempre en positivo; el signo se elige aparte.
+  const [sign, setSign] = useState<Sign>(
+    account && account.initial_balance_cents < 0 ? 'neg' : 'pos',
+  )
+  const [balanceValid, setBalanceValid] = useState(true)
+  const balanceRef = useRef<HTMLInputElement>(null)
+  const inFlight = useRef(false)
   const [nameError, setNameError] = useState<string>()
   const [pending, setPending] = useState<Pending>(null)
   const [busy, setBusy] = useState(false)
@@ -82,16 +93,29 @@ function AccountForm({
   const currentBalance = account ? (finance?.balances.get(account.id) ?? 0) : 0
 
   async function run(action: () => Promise<void>, done: string) {
+    if (inFlight.current) return
+    inFlight.current = true
     setBusy(true)
     try {
       await action()
       toast.show({ message: done })
       onClose()
     } catch {
+      inFlight.current = false
       setBusy(false)
       setPending(null)
       toast.show({ message: 'No se pudo guardar. Intenta de nuevo' })
     }
+  }
+
+  // Al pasar de o a crédito el sentido vuelve a su valor natural: crédito debe
+  // (negativo), cualquier otro tipo a favor (positivo). Entre tipos que no son
+  // crédito se conserva lo elegido.
+  function changeType(next: Account['type']) {
+    if ((next === 'credit') !== (type === 'credit')) {
+      setSign(next === 'credit' ? 'neg' : 'pos')
+    }
+    setType(next)
   }
 
   function save() {
@@ -101,6 +125,10 @@ function AccountForm({
       return
     }
     setNameError(undefined)
+    if (!balanceValid) {
+      balanceRef.current?.focus()
+      return
+    }
     const cents = balance ?? 0
     void run(async () => {
       await repo.put('accounts', {
@@ -108,8 +136,7 @@ function AccountForm({
         id: account?.id,
         name: name.trim(),
         type,
-        // En crédito el usuario captura lo que debe (positivo); se guarda negativo.
-        initial_balance_cents: type === 'credit' ? -cents : cents,
+        initial_balance_cents: sign === 'neg' ? -cents : cents,
         include_in_total: inTotal,
         icon,
         color,
@@ -159,12 +186,30 @@ function AccountForm({
         label="Tipo de cuenta"
         options={TYPES}
         value={type}
-        onChange={setType}
+        onChange={changeType}
+      />
+      <Segmented<Sign>
+        label="Sentido del saldo inicial"
+        options={
+          type === 'credit'
+            ? [
+                { value: 'neg', label: 'Debes' },
+                { value: 'pos', label: 'A favor' },
+              ]
+            : [
+                { value: 'pos', label: 'A favor' },
+                { value: 'neg', label: 'En contra' },
+              ]
+        }
+        value={sign}
+        onChange={setSign}
       />
       <AmountInput
-        label={type === 'credit' ? 'Debes' : 'Saldo inicial'}
+        label="Saldo inicial"
         valueCents={balance}
         onChange={setBalance}
+        onValidityChange={setBalanceValid}
+        inputRef={balanceRef}
       />
       <label className="flex min-h-11 cursor-pointer items-center gap-3 text-base text-texto">
         <input
@@ -200,17 +245,30 @@ function AccountForm({
 
       {pending === null && (
         <div className="flex flex-col gap-2">
-          <Button variant="primaria" type="submit" loading={busy}>
+          <Button
+            variant="primaria"
+            type="submit"
+            loading={busy}
+            disabled={!finance}
+          >
             Guardar
           </Button>
           {account && (
             <>
               {account.archived ? (
-                <Button variant="secundaria" onClick={() => setArchived(false)}>
+                <Button
+                  variant="secundaria"
+                  disabled={busy}
+                  onClick={() => setArchived(false)}
+                >
                   Desarchivar
                 </Button>
               ) : (
-                <Button variant="secundaria" onClick={askArchive}>
+                <Button
+                  variant="secundaria"
+                  disabled={busy}
+                  onClick={askArchive}
+                >
                   Archivar
                 </Button>
               )}
@@ -219,7 +277,11 @@ function AccountForm({
                   Tiene movimientos: puedes archivarla
                 </p>
               ) : (
-                <Button variant="fantasma" onClick={() => setPending('delete')}>
+                <Button
+                  variant="fantasma"
+                  disabled={busy}
+                  onClick={() => setPending('delete')}
+                >
                   Borrar
                 </Button>
               )}
