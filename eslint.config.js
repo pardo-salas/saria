@@ -40,6 +40,18 @@ export default tseslint.config(
                 'Solo src/auth/** y src/sync/** pueden importar @supabase/supabase-js.',
             },
           ],
+          patterns: [
+            {
+              group: ['@supabase/*'],
+              message:
+                'Solo src/auth/** y src/sync/** pueden importar paquetes de @supabase.',
+            },
+            {
+              group: ['@/auth/supabase', '**/auth/supabase'],
+              message:
+                'El cliente de Supabase es privado de src/auth/** y src/sync/**; la UI usa authService o useSession.',
+            },
+          ],
         },
       ],
     },

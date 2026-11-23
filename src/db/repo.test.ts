@@ -193,6 +193,65 @@ describe('repo', () => {
     )
     expect(await db.outbox.count()).toBe(0)
   })
+
+  describe('validación de montos *_cents', () => {
+    const tx = {
+      kind: 'expense' as const,
+      amount_cents: 1250,
+      date: '2026-01-01',
+      account_id: 'a1',
+      category_id: null,
+      note: null,
+      recurring_id: null,
+      installment_plan_id: null,
+      legacy_id: null,
+    }
+
+    it('rechaza con RangeError un monto no entero y no escribe nada', async () => {
+      const db = await open()
+      const repo = createRepo(
+        db,
+        () => USER,
+        () => T1,
+      )
+      await expect(
+        repo.put('transactions', { ...tx, amount_cents: 12.5 }),
+      ).rejects.toBeInstanceOf(RangeError)
+      await expect(
+        repo.put('transactions', { ...tx, amount_cents: Number.NaN }),
+      ).rejects.toBeInstanceOf(RangeError)
+      expect(await db.table('transactions').count()).toBe(0)
+      expect(await db.outbox.count()).toBe(0)
+    })
+
+    it('rechaza también campos opcionales como credit_limit_cents', async () => {
+      const db = await open()
+      const repo = createRepo(
+        db,
+        () => USER,
+        () => T1,
+      )
+      await expect(
+        repo.put('accounts', { ...account, credit_limit_cents: 0.5 }),
+      ).rejects.toBeInstanceOf(RangeError)
+      expect(await db.table('accounts').count()).toBe(0)
+      expect(await db.outbox.count()).toBe(0)
+    })
+
+    it('acepta null y enteros', async () => {
+      const db = await open()
+      const repo = createRepo(
+        db,
+        () => USER,
+        () => T1,
+      )
+      await repo.put('accounts', { ...account, credit_limit_cents: null })
+      await repo.put('transactions', tx)
+      expect(await db.table('accounts').count()).toBe(1)
+      expect(await db.table('transactions').count()).toBe(1)
+      expect(await db.outbox.count()).toBe(2)
+    })
+  })
 })
 
 describe('repo de la app', () => {

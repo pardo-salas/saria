@@ -33,7 +33,7 @@ Nunca subas `.env.local` ni nada de `data/`: contienen tus claves y tus datos fi
    - **Framework Preset:** Vite
    - **Build Command:** `npm run build`
    - **Output Directory:** `dist`
-   - **Node.js Version:** 20.x o superior (el proyecto se probó con Node 24).
+   - **Node.js Version:** 22.x o superior (Vite requiere al menos 20.19 o 22.12; el proyecto se probó con Node 24).
 4. Todavía no presiones **Deploy**: primero agrega las variables (paso 4).
 
 ## 4. Variables de entorno
@@ -43,11 +43,11 @@ En la misma pantalla (sección **Environment Variables**), o después en **Setti
 | Nombre                   | Valor                                                    |
 | ------------------------ | -------------------------------------------------------- |
 | `VITE_SUPABASE_URL`      | El **Project URL** de Supabase (`https://xxxx.supabase.co`) |
-| `VITE_SUPABASE_ANON_KEY` | La clave **anon public** de Supabase                     |
+| `VITE_SUPABASE_ANON_KEY` | La **Publishable key** (`sb_publishable_…`) o la clave **anon public** de Supabase |
 
-Los dos valores están en Supabase: **Project Settings → API**.
+Los dos valores están en Supabase: la clave en **Project Settings → API Keys** (la **anon public** está en la pestaña **Legacy API keys**) y el Project URL en **Project Settings → Data API**; en paneles anteriores todo está en **Project Settings → API**.
 
-- **Nunca** agregues la clave `service_role`: salta la seguridad por fila y daría acceso total a tus datos.
+- **Nunca** agregues la clave `service_role` ni la **Secret key** (`sb_secret_…`): saltan la seguridad por fila y darían acceso total a tus datos.
 - Las variables `VITE_` se incrustan en la app **al construirla**. Si las cambias después, hay que volver a desplegar (**Deployments → ⋯ → Redeploy**) para que surtan efecto.
 
 Ahora sí, presiona **Deploy**. Al terminar, Vercel te da una URL parecida a `https://saria-xxxx.vercel.app`.

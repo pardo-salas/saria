@@ -15,7 +15,7 @@ Tu URL de producción de Vercel aparece abajo como `https://<tu-app>.vercel.app`
 1. En el panel, abre **SQL Editor** y crea una consulta nueva.
 2. Copia todo el contenido de `supabase/migrations/0001_init.sql` y pégalo.
 3. Presiona **Run**. Debe terminar sin errores.
-4. En **Table Editor** verifica que existen 8 tablas: `accounts`, `categories`, `transactions`, `transfers`, `recurring_payments`, `reminders`, `installment_plans` y `settings`, todas con el candado de RLS activo.
+4. En **Table Editor** verifica que existen 8 tablas: `accounts`, `categories`, `transactions`, `transfers`, `recurring_payments`, `reminders`, `installment_plans` y `settings`, y ninguna muestra la etiqueta **Unrestricted** (si alguna la muestra, RLS no quedó activo: revisa que la migración se ejecutó completa).
 
 Alternativa con la CLI: `supabase link` y luego `supabase db push`.
 
@@ -43,33 +43,36 @@ Así nadie más puede crear una cuenta; la app tampoco ofrece esa opción.
 
 ## 6. Copiar las claves
 
-1. Ve a **Project Settings → API**.
-2. Copia **Project URL** y la clave **anon public**.
+1. Ve a **Project Settings → API Keys** (en paneles anteriores: **Project Settings → API**). El **Project URL** aparece en **Project Settings → Data API** o en la parte superior de esa misma pantalla.
+2. Copia el **Project URL** y la clave de cliente: la **Publishable key** (`sb_publishable_…`) o, si tu panel aún la muestra, la clave **anon public** (pestaña **Legacy API keys**). Cualquiera de las dos sirve en la variable `VITE_SUPABASE_ANON_KEY`.
 3. En la raíz del repo crea `.env.local` (no se versiona):
 
    ```
    VITE_SUPABASE_URL=https://xxxx.supabase.co
-   VITE_SUPABASE_ANON_KEY=tu-clave-anon
+   VITE_SUPABASE_ANON_KEY=tu-clave-publishable-o-anon
    ```
 
 4. En Vercel: proyecto → **Settings → Environment Variables**, agrega las mismas dos variables (`VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY`) y vuelve a desplegar.
 
-**Nunca** uses ni pegues la clave `service_role` en la app, en `.env.local` ni en Vercel: salta la seguridad por fila.
+**Nunca** uses ni pegues la clave `service_role` ni la **Secret key** (`sb_secret_…`) en la app, en `.env.local` ni en Vercel: saltan la seguridad por fila.
 
 ## 7. Punto de control
 
 1. **Iniciar sesión:** abre la app (local o `https://<tu-app>.vercel.app`) y entra con el usuario del paso 4. Debes llegar a Inicio.
 2. **Restablecer contraseña:** cierra sesión, usa "¿Olvidaste tu contraseña?", revisa tu correo y abre el enlace. Debe llevarte a `https://<tu-app>.vercel.app/restablecer`, donde fijas una contraseña nueva. Inicia sesión con ella.
-3. **Prueba de RLS sin sesión:** con solo la clave `anon` y sin token de usuario, una consulta debe regresar vacío. En una terminal:
+3. **Prueba de RLS sin sesión:** con solo la clave de cliente (Publishable o anon) y sin token de usuario, una consulta debe regresar vacío. En PowerShell o CMD (usa `curl.exe`, no `curl`, y todo en una sola línea):
 
    ```
-   curl "<SUPABASE_URL>/rest/v1/accounts?select=*" \
-     -H "apikey: <ANON_KEY>"
+   curl.exe "<SUPABASE_URL>/rest/v1/accounts?select=*" -H "apikey: <CLAVE>"
    ```
 
    Resultado esperado: `[]`. Si ves filas o un error de permisos distinto, revisa que la migración se aplicó completa y que RLS está activo en la tabla.
 
-4. **Borrado físico bloqueado (opcional):** un `DELETE` con la clave `anon` a `<SUPABASE_URL>/rest/v1/accounts?id=eq.<uuid>` debe fallar o no afectar filas; la app solo hace borrado lógico (`deleted_at`).
+4. **Borrado físico bloqueado (opcional):** un `DELETE` con la clave de cliente, por ejemplo `curl.exe -X DELETE "<SUPABASE_URL>/rest/v1/accounts?id=eq.<uuid>" -H "apikey: <CLAVE>"` (una sola línea; funciona en PowerShell y CMD), debe fallar o no afectar filas; la app solo hace borrado lógico (`deleted_at`).
+
+## Aviso: límite de correos
+
+El envío de correos integrado de Supabase tiene un límite bajo (unos pocos correos por hora). Si pruebas varias veces "¿Olvidaste tu contraseña?" seguidas puedes toparte con ese límite: espera un rato y vuelve a intentar, o más adelante configura tu propio servidor SMTP en **Authentication → Emails → SMTP Settings**.
 
 ## Nota para Fase 2
 

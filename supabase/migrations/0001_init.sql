@@ -8,6 +8,7 @@
 create or replace function public.set_updated_at()
 returns trigger
 language plpgsql
+set search_path = ''
 as $$
 begin
   new.updated_at = now();
@@ -267,6 +268,12 @@ create index transactions_category_idx on public.transactions (category_id);
 create index transfers_user_date_idx on public.transfers (user_id, date);
 create index transfers_from_account_idx on public.transfers (from_account_id);
 create index transfers_to_account_idx on public.transfers (to_account_id);
+create index installment_plans_account_idx on public.installment_plans (account_id);
+create index recurring_payments_account_idx on public.recurring_payments (account_id);
+create index recurring_payments_category_idx on public.recurring_payments (category_id);
+create index transactions_recurring_idx on public.transactions (recurring_id);
+create index transactions_installment_plan_idx on public.transactions (installment_plan_id);
+create index reminders_recurring_idx on public.reminders (recurring_id);
 
 create unique index transactions_user_legacy_uidx on public.transactions (user_id, legacy_id) where legacy_id is not null;
 create unique index transfers_user_legacy_uidx on public.transfers (user_id, legacy_id) where legacy_id is not null;
@@ -283,37 +290,37 @@ alter table public.transfers enable row level security;
 alter table public.reminders enable row level security;
 alter table public.settings enable row level security;
 
-create policy accounts_select on public.accounts for select to authenticated using (user_id = auth.uid());
-create policy accounts_insert on public.accounts for insert to authenticated with check (user_id = auth.uid());
-create policy accounts_update on public.accounts for update to authenticated using (user_id = auth.uid()) with check (user_id = auth.uid());
+create policy accounts_select on public.accounts for select to authenticated using (user_id = (select auth.uid()));
+create policy accounts_insert on public.accounts for insert to authenticated with check (user_id = (select auth.uid()));
+create policy accounts_update on public.accounts for update to authenticated using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
 
-create policy categories_select on public.categories for select to authenticated using (user_id = auth.uid());
-create policy categories_insert on public.categories for insert to authenticated with check (user_id = auth.uid());
-create policy categories_update on public.categories for update to authenticated using (user_id = auth.uid()) with check (user_id = auth.uid());
+create policy categories_select on public.categories for select to authenticated using (user_id = (select auth.uid()));
+create policy categories_insert on public.categories for insert to authenticated with check (user_id = (select auth.uid()));
+create policy categories_update on public.categories for update to authenticated using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
 
-create policy installment_plans_select on public.installment_plans for select to authenticated using (user_id = auth.uid());
-create policy installment_plans_insert on public.installment_plans for insert to authenticated with check (user_id = auth.uid());
-create policy installment_plans_update on public.installment_plans for update to authenticated using (user_id = auth.uid()) with check (user_id = auth.uid());
+create policy installment_plans_select on public.installment_plans for select to authenticated using (user_id = (select auth.uid()));
+create policy installment_plans_insert on public.installment_plans for insert to authenticated with check (user_id = (select auth.uid()));
+create policy installment_plans_update on public.installment_plans for update to authenticated using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
 
-create policy recurring_payments_select on public.recurring_payments for select to authenticated using (user_id = auth.uid());
-create policy recurring_payments_insert on public.recurring_payments for insert to authenticated with check (user_id = auth.uid());
-create policy recurring_payments_update on public.recurring_payments for update to authenticated using (user_id = auth.uid()) with check (user_id = auth.uid());
+create policy recurring_payments_select on public.recurring_payments for select to authenticated using (user_id = (select auth.uid()));
+create policy recurring_payments_insert on public.recurring_payments for insert to authenticated with check (user_id = (select auth.uid()));
+create policy recurring_payments_update on public.recurring_payments for update to authenticated using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
 
-create policy transactions_select on public.transactions for select to authenticated using (user_id = auth.uid());
-create policy transactions_insert on public.transactions for insert to authenticated with check (user_id = auth.uid());
-create policy transactions_update on public.transactions for update to authenticated using (user_id = auth.uid()) with check (user_id = auth.uid());
+create policy transactions_select on public.transactions for select to authenticated using (user_id = (select auth.uid()));
+create policy transactions_insert on public.transactions for insert to authenticated with check (user_id = (select auth.uid()));
+create policy transactions_update on public.transactions for update to authenticated using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
 
-create policy transfers_select on public.transfers for select to authenticated using (user_id = auth.uid());
-create policy transfers_insert on public.transfers for insert to authenticated with check (user_id = auth.uid());
-create policy transfers_update on public.transfers for update to authenticated using (user_id = auth.uid()) with check (user_id = auth.uid());
+create policy transfers_select on public.transfers for select to authenticated using (user_id = (select auth.uid()));
+create policy transfers_insert on public.transfers for insert to authenticated with check (user_id = (select auth.uid()));
+create policy transfers_update on public.transfers for update to authenticated using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
 
-create policy reminders_select on public.reminders for select to authenticated using (user_id = auth.uid());
-create policy reminders_insert on public.reminders for insert to authenticated with check (user_id = auth.uid());
-create policy reminders_update on public.reminders for update to authenticated using (user_id = auth.uid()) with check (user_id = auth.uid());
+create policy reminders_select on public.reminders for select to authenticated using (user_id = (select auth.uid()));
+create policy reminders_insert on public.reminders for insert to authenticated with check (user_id = (select auth.uid()));
+create policy reminders_update on public.reminders for update to authenticated using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
 
-create policy settings_select on public.settings for select to authenticated using (user_id = auth.uid());
-create policy settings_insert on public.settings for insert to authenticated with check (user_id = auth.uid());
-create policy settings_update on public.settings for update to authenticated using (user_id = auth.uid()) with check (user_id = auth.uid());
+create policy settings_select on public.settings for select to authenticated using (user_id = (select auth.uid()));
+create policy settings_insert on public.settings for insert to authenticated with check (user_id = (select auth.uid()));
+create policy settings_update on public.settings for update to authenticated using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
 
 -- Refuerzo: el borrado físico queda bloqueado desde el cliente.
 revoke delete on public.accounts from anon, authenticated;

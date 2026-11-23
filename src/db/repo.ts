@@ -13,6 +13,21 @@ export type NewRow<T extends SyncedTableName> = Omit<
   keyof SyncedRow
 > & { id?: string }
 
+/** Los montos (*_cents) son enteros seguros o null; cualquier otra cosa se rechaza. */
+function assertCents(row: object): void {
+  for (const [key, value] of Object.entries(row)) {
+    if (
+      key.endsWith('_cents') &&
+      value !== null &&
+      !Number.isSafeInteger(value)
+    ) {
+      throw new RangeError(
+        `${key} debe ser un entero (centavos); recibió ${String(value)}`,
+      )
+    }
+  }
+}
+
 /**
  * Única vía de escritura a Dexie: estampa metadatos de sincronización y
  * encola el cambio en `outbox` dentro de la misma transacción.
@@ -33,6 +48,7 @@ export function createRepo(
     row: NewRow<T>,
   ): Promise<RowOf<T>> {
     const userId = requireUser()
+    assertCents(row)
     const stamp = now()
     const id = table === 'settings' ? userId : (row.id ?? crypto.randomUUID())
     return db.transaction('rw', db.table(table), db.outbox, async () => {
