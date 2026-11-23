@@ -53,7 +53,8 @@ export function createRepo(
   async function put<T extends SyncedTableName>(
     table: T,
     row: NewRow<T>,
-    opts?: { created_at?: string },
+    // `revive` revive una fila borrada (solo lo usa la restauración de respaldo).
+    opts?: { created_at?: string; revive?: boolean },
   ): Promise<RowOf<T>> {
     const userId = requireUser()
     assertCents(row)
@@ -67,7 +68,7 @@ export function createRepo(
         user_id: userId,
         created_at: existing?.created_at ?? opts?.created_at ?? stamp,
         updated_at: stamp,
-        deleted_at: existing?.deleted_at ?? null,
+        deleted_at: opts?.revive ? null : (existing?.deleted_at ?? null),
       } as RowOf<T>
       await db.table(table).put(saved)
       await db.outbox.add({

@@ -196,6 +196,21 @@ describe('repo', () => {
     )
   })
 
+  it('put con revive revive una fila borrada; sin revive no', async () => {
+    const db = await open()
+    const repo = createRepo(
+      db,
+      () => USER,
+      () => T1,
+    )
+    const saved = await repo.put('accounts', account)
+    await repo.softDelete('accounts', saved.id)
+    await repo.put('accounts', { ...account, id: saved.id })
+    expect((await db.accounts.get(saved.id))?.deleted_at).toBe(T1)
+    await repo.put('accounts', { ...account, id: saved.id }, { revive: true })
+    expect((await db.accounts.get(saved.id))?.deleted_at).toBeNull()
+  })
+
   it('put con created_at en una fila nueva lo conserva', async () => {
     const db = await open()
     const repo = createRepo(
