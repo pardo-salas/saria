@@ -20,11 +20,12 @@ interface ToastApi {
 
 const TOAST_MS = 5000
 
-// Sin proveedor (pruebas de pantallas aisladas) mostrar no hace nada.
-const ToastContext = createContext<ToastApi>({ show: () => {} })
+const ToastContext = createContext<ToastApi | null>(null)
 
 export function useToast(): ToastApi {
-  return useContext(ToastContext)
+  const api = useContext(ToastContext)
+  if (!api) throw new Error('useToast debe usarse dentro de <ToastProvider>')
+  return api
 }
 
 /**
@@ -74,7 +75,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
                   current.onAction?.()
                   setCurrent(null)
                 }}
-                className="min-h-11 shrink-0 rounded-[1rem] px-4 text-sm font-semibold text-agua hover:bg-superficie"
+                className="min-h-11 shrink-0 cursor-pointer rounded-[1rem] px-4 text-sm font-semibold text-agua outline-foco hover:bg-superficie focus-visible:outline-2 focus-visible:outline-offset-2"
               >
                 {current.actionLabel}
               </button>

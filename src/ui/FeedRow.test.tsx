@@ -96,13 +96,13 @@ describe('FeedRow', () => {
   it('una transferencia vista desde el origen dice "A BBVA Crédito"', () => {
     renderRow(traspaso, 'a1')
     expect(screen.getByText('A BBVA Crédito')).toBeInTheDocument()
-    expect(screen.getByText('−$2,000.00')).not.toHaveClass('text-gasto')
+    expect(screen.getByText('−$2,000.00')).toHaveClass('text-texto')
   })
 
   it('vista desde el destino dice "De BBVA Débito" con monto neutro sin signo', () => {
     renderRow(traspaso, 'a2')
     expect(screen.getByText('De BBVA Débito')).toBeInTheDocument()
-    expect(screen.getByText('$2,000.00')).not.toHaveClass('text-agua')
+    expect(screen.getByText('$2,000.00')).toHaveClass('text-texto')
   })
 
   it('sin cuenta muestra "origen → destino" y el monto sin signo', () => {

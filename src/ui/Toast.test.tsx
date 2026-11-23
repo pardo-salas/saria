@@ -60,6 +60,47 @@ describe('Toast', () => {
     expect(screen.queryByText('Gasto guardado')).not.toBeInTheDocument()
   })
 
+  it('un aviso nuevo reinicia los 5 s', () => {
+    vi.useFakeTimers()
+    function Dos() {
+      const { show } = useToast()
+      return (
+        <>
+          <button type="button" onClick={() => show({ message: 'Uno' })}>
+            A
+          </button>
+          <button type="button" onClick={() => show({ message: 'Dos' })}>
+            B
+          </button>
+        </>
+      )
+    }
+    render(
+      <ToastProvider>
+        <Dos />
+      </ToastProvider>,
+    )
+    act(() => screen.getByRole('button', { name: 'A' }).click())
+    act(() => {
+      vi.advanceTimersByTime(3000)
+    })
+    act(() => screen.getByRole('button', { name: 'B' }).click())
+    act(() => {
+      vi.advanceTimersByTime(4000)
+    })
+    expect(screen.getByText('Dos')).toBeInTheDocument()
+    act(() => {
+      vi.advanceTimersByTime(1000)
+    })
+    expect(screen.queryByText('Dos')).not.toBeInTheDocument()
+  })
+
+  it('useToast fuera del proveedor lanza un error claro', () => {
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    expect(() => render(<Disparador />)).toThrow(/ToastProvider/)
+    spy.mockRestore()
+  })
+
   it('un aviso nuevo reemplaza al anterior', async () => {
     function Dos() {
       const { show } = useToast()

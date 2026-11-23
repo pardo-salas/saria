@@ -45,16 +45,19 @@ export function AmountInput({
   const [text, setText] = useState(() => toText(valueCents))
   const [focused, setFocused] = useState(false)
   const [prevValue, setPrevValue] = useState(valueCents)
-  // Último monto que salió de este campo: distingue lo que escribió la persona de un cambio del padre.
-  const [emitted, setEmitted] = useState<number | null>(valueCents)
 
-  // Si el padre cambia el valor, el texto lo sigue; con foco solo se vacía cuando
-  // el padre pone null sobre un monto válido (p. ej. al limpiar el formulario).
+  // Si el padre cambia el valor, el texto lo sigue. Con foco solo se reemplaza si
+  // el texto actual ya no equivale al nuevo valor: así el eco de lo que se escribe
+  // ("12.", "12,5") no pisa la edición, pero un cambio externo sí se refleja.
   if (valueCents !== prevValue) {
     setPrevValue(valueCents)
-    if (!focused) setText(toText(valueCents))
-    else if (valueCents === null && emitted !== null) setText('')
-    setEmitted(valueCents)
+    if (!focused) {
+      setText(toText(valueCents))
+    } else {
+      const parsed = parseToCents(text)
+      const current = parsed.ok ? parsed.cents : null
+      if (current !== valueCents) setText(toText(valueCents))
+    }
   }
 
   const message = error ?? messageFor(text)
@@ -96,7 +99,6 @@ export function AmountInput({
             setText(next)
             const result = parseToCents(next)
             const emittedCents = result.ok ? result.cents : null
-            setEmitted(emittedCents)
             onChange(emittedCents)
           }}
           onBlur={() => {

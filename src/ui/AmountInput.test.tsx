@@ -121,6 +121,26 @@ describe('AmountInput', () => {
     expect(input).toHaveValue('')
   })
 
+  it('con foco, si el padre cambia a otro monto el texto lo sigue', () => {
+    const { rerender } = render(
+      <AmountInput label="Monto" valueCents={1250} onChange={() => {}} />,
+    )
+    const input = screen.getByRole('textbox', { name: 'Monto' })
+    input.focus()
+    rerender(<AmountInput label="Monto" valueCents={500} onChange={() => {}} />)
+    expect(input).toHaveValue('5.00')
+  })
+
+  it('el eco del padre al escribir ("12.", "12,5") no pisa el texto', async () => {
+    render(<Controlled onChange={() => {}} />)
+    const input = screen.getByRole('textbox', { name: 'Monto' })
+    await userEvent.type(input, '12.')
+    expect(input).toHaveValue('12.')
+    await userEvent.clear(input)
+    await userEvent.type(input, '12,5')
+    expect(input).toHaveValue('12,5')
+  })
+
   it('texto inválido tras un monto válido no borra lo escrito', async () => {
     render(<Controlled onChange={() => {}} />)
     const input = screen.getByRole('textbox', { name: 'Monto' })
