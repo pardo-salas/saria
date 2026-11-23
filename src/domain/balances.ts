@@ -14,7 +14,8 @@ export function balancesByAccount(
   for (const a of accounts) parts.set(a.id, [a.initial_balance_cents])
   for (const t of txs) {
     if (t.kind === 'income') parts.get(t.account_id)?.push(t.amount_cents)
-    else if (t.kind === 'expense') parts.get(t.account_id)?.push(-t.amount_cents)
+    else if (t.kind === 'expense')
+      parts.get(t.account_id)?.push(-t.amount_cents)
   }
   for (const r of transfers) {
     parts.get(r.to_account_id)?.push(r.amount_cents)
@@ -26,7 +27,10 @@ export function balancesByAccount(
 }
 
 /** Saldo total: solo cuentas incluidas en el total y no archivadas. */
-export function totalBalance(accounts: Account[], balances: Map<string, number>): number {
+export function totalBalance(
+  accounts: Account[],
+  balances: Map<string, number>,
+): number {
   return sumCents(
     accounts
       .filter((a) => a.include_in_total && !a.archived)
@@ -63,14 +67,25 @@ export function accountsBreakdown(
     const members = active
       .filter((a) => groupOf(a.type) === group)
       .sort((x, y) => x.position - y.position)
-    return { group, subtotalCents: sumCents(members.map(bal)), accounts: members }
+    return {
+      group,
+      subtotalCents: sumCents(members.map(bal)),
+      accounts: members,
+    }
   }).filter((g) => g.accounts.length > 0)
 
   const creditDebtCents = Math.abs(
-    sumCents(active.filter((a) => a.type === 'credit').map(bal).filter((v) => v < 0)),
+    sumCents(
+      active
+        .filter((a) => a.type === 'credit')
+        .map(bal)
+        .filter((v) => v < 0),
+    ),
   )
   const investmentApartCents = sumCents(
-    active.filter((a) => a.type === 'investment' && !a.include_in_total).map(bal),
+    active
+      .filter((a) => a.type === 'investment' && !a.include_in_total)
+      .map(bal),
   )
 
   return {
@@ -88,8 +103,13 @@ export interface Flow {
 
 function flowOf(txs: Transaction[]): Flow {
   return {
-    incomeCents: sumCents(txs.filter((t) => t.kind === 'income').map((t) => t.amount_cents)),
-    expenseCents: sumCents(txs.filter((t) => t.kind === 'expense').map((t) => t.amount_cents)),  }
+    incomeCents: sumCents(
+      txs.filter((t) => t.kind === 'income').map((t) => t.amount_cents),
+    ),
+    expenseCents: sumCents(
+      txs.filter((t) => t.kind === 'expense').map((t) => t.amount_cents),
+    ),
+  }
 }
 
 /** Ingresos y gastos de hoy y del mes actual, de todas las cuentas. */
@@ -99,7 +119,10 @@ export function periodSummary(
 ): { today: Flow; month: Flow } {
   const month = monthKey(today)
   const inMonth = txs.filter((t) => monthKey(t.date) === month)
-  return { today: flowOf(inMonth.filter((t) => t.date === today)), month: flowOf(inMonth) }
+  return {
+    today: flowOf(inMonth.filter((t) => t.date === today)),
+    month: flowOf(inMonth),
+  }
 }
 
 export type WaterLevel =
@@ -115,6 +138,9 @@ export function waterLevel(
   if (salaryCents === null || salaryCents <= 0) return { state: 'no-salary' }
   const remainingCents = salaryCents - monthExpenseCents
   // El porcentaje no es dinero: aquí la división flotante es válida.
-  const percent = Math.min(100, Math.max(0, Math.round((remainingCents * 100) / salaryCents)))
+  const percent = Math.min(
+    100,
+    Math.max(0, Math.round((remainingCents * 100) / salaryCents)),
+  )
   return { state: 'ok', remainingCents, percent, daysLeft }
 }

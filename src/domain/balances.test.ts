@@ -62,7 +62,10 @@ const tr = (o: Partial<Transfer>): Transfer => ({
 
 describe('balancesByAccount', () => {
   it('combina inicial, ingresos, gastos y transferencias', () => {
-    const accounts = [acct({ id: 'a', initial_balance_cents: 10000 }), acct({ id: 'b' })]
+    const accounts = [
+      acct({ id: 'a', initial_balance_cents: 10000 }),
+      acct({ id: 'b' }),
+    ]
     const txs = [
       tx({ kind: 'income', amount_cents: 5000 }),
       tx({ kind: 'expense', amount_cents: 2000 }),
@@ -100,7 +103,11 @@ describe('totalBalance', () => {
       acct({ id: 'b', include_in_total: false }),
       acct({ id: 'c', archived: true }),
     ]
-    const balances = new Map([['a', 100], ['b', 200], ['c', 400]])
+    const balances = new Map([
+      ['a', 100],
+      ['b', 200],
+      ['c', 400],
+    ])
     expect(totalBalance(accounts, balances)).toBe(100)
   })
 })
@@ -119,8 +126,18 @@ describe('accountsBreakdown', () => {
     acct({ id: 'nu', type: 'debit', position: 0 }),
     acct({ id: 'cartera', type: 'cash', position: 1 }),
     acct({ id: 'bbva', type: 'credit', position: 2 }),
-    acct({ id: 'banamex', type: 'credit', position: 3, include_in_total: false }),
-    acct({ id: 'poliza', type: 'investment', position: 4, include_in_total: false }),
+    acct({
+      id: 'banamex',
+      type: 'credit',
+      position: 3,
+      include_in_total: false,
+    }),
+    acct({
+      id: 'poliza',
+      type: 'investment',
+      position: 4,
+      include_in_total: false,
+    }),
     acct({ id: 'vieja', type: 'cash', position: 5, archived: true }),
   ]
   const balances = new Map([
@@ -134,14 +151,23 @@ describe('accountsBreakdown', () => {
   it('calcula total, subtotales, deuda e inversión aparte', () => {
     const b = accountsBreakdown(accounts, balances)
     expect(b.totalCents).toBe(2293227)
-    expect(b.groups.map((g) => g.group)).toEqual(['liquid', 'credit', 'investment'])
-    expect(b.groups.map((g) => g.subtotalCents)).toEqual([2579163, -637194, 7166202])
+    expect(b.groups.map((g) => g.group)).toEqual([
+      'liquid',
+      'credit',
+      'investment',
+    ])
+    expect(b.groups.map((g) => g.subtotalCents)).toEqual([
+      2579163, -637194, 7166202,
+    ])
     expect(b.groups[0].accounts.map((a) => a.id)).toEqual(['nu', 'cartera'])
     expect(b.creditDebtCents).toBe(637194)
     expect(b.investmentApartCents).toBe(7166202)
   })
   it('omite grupos vacíos', () => {
-    const b = accountsBreakdown([acct({ id: 'x', type: 'cash' })], new Map([['x', 5]]))
+    const b = accountsBreakdown(
+      [acct({ id: 'x', type: 'cash' })],
+      new Map([['x', 5]]),
+    )
     expect(b.groups.map((g) => g.group)).toEqual(['liquid'])
     expect(b.creditDebtCents).toBe(0)
     expect(b.investmentApartCents).toBe(0)
@@ -155,7 +181,12 @@ describe('periodSummary', () => {
         tx({ kind: 'expense', amount_cents: 300, date: '2026-11-22' }),
         tx({ kind: 'expense', amount_cents: 200, date: '2026-11-01' }),
         tx({ kind: 'income', amount_cents: 9000, date: '2026-10-31' }),
-        tx({ kind: 'income', amount_cents: 50, date: '2026-11-22', account_id: 'excluida' }),
+        tx({
+          kind: 'income',
+          amount_cents: 50,
+          date: '2026-11-22',
+          account_id: 'excluida',
+        }),
       ],
       '2026-11-22',
     )
@@ -168,7 +199,14 @@ describe('periodSummary (archivadas)', () => {
   it('incluye movimientos de una cuenta archivada', () => {
     // periodSummary no recibe cuentas: suma todos los movimientos que le pasan.
     const s = periodSummary(
-      [tx({ kind: 'expense', amount_cents: 70, date: '2026-11-22', account_id: 'archivada' })],
+      [
+        tx({
+          kind: 'expense',
+          amount_cents: 70,
+          date: '2026-11-22',
+          account_id: 'archivada',
+        }),
+      ],
       '2026-11-22',
     )
     expect(s.today.expenseCents).toBe(70)
