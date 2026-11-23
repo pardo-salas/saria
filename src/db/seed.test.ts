@@ -1,4 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest'
+import { colorAt } from '../domain/catalog'
+import { SEED_CATEGORIES } from '../domain/seedCategories'
 import { createDb, type SariaDB } from './dexie'
 import { createRepo } from './repo'
 import { ensureCategoriesSeeded } from './seed'
@@ -27,11 +29,44 @@ describe('ensureCategoriesSeeded', () => {
     expect(await db.outbox.count()).toBe(28)
   })
 
+  it('guarda posición, color y límite esperados', async () => {
+    const db = await open()
+    await ensureCategoriesSeeded(
+      db,
+      createRepo(db, () => USER),
+      USER,
+    )
+    const rows = await db.categories.toArray()
+    const byName = (kind: string, name: string) =>
+      rows.find((r) => r.kind === kind && r.name === name)!
+    expect(byName('income', 'Interés').position).toBe(0)
+    expect(byName('expense', 'Transporte').position).toBe(0)
+    expect(byName('income', 'Utilidades').position).toBe(7)
+    const globalIndex = SEED_CATEGORIES.findIndex(
+      (c) => c.kind === 'income' && c.name === 'Interés',
+    )
+    expect(byName('income', 'Interés').color).toBe(colorAt(globalIndex))
+    expect(byName('expense', 'Seguro').monthly_limit_cents).toBe(28800)
+  })
+
+  it('dos llamadas concurrentes siembran una sola vez', async () => {
+    const db = await open()
+    const repo = createRepo(db, () => USER)
+    const results = await Promise.all([
+      ensureCategoriesSeeded(db, repo, USER),
+      ensureCategoriesSeeded(db, repo, USER),
+    ])
+    expect(results.filter(Boolean)).toHaveLength(1)
+    expect(await db.categories.count()).toBe(28)
+    expect(await db.outbox.count()).toBe(28)
+  })
+
   it('la segunda llamada devuelve false sin escribir', async () => {
     const db = await open()
     const repo = createRepo(db, () => USER)
     await ensureCategoriesSeeded(db, repo, USER)
     expect(await ensureCategoriesSeeded(db, repo, USER)).toBe(false)
+    expect(await db.categories.count()).toBe(28)
     expect(await db.outbox.count()).toBe(28)
   })
 

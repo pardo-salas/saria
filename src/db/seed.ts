@@ -13,11 +13,7 @@ export async function ensureCategoriesSeeded(
   repo: Repo,
   userId: string,
 ): Promise<boolean> {
-  const existing = await db.categories
-    .filter((c) => c.user_id === userId)
-    .count()
-  if (existing > 0) return false
-
+  // Los IDs se calculan antes: crypto.subtle no debe correr dentro de la transacción.
   const ids = await Promise.all(
     SEED_CATEGORIES.map((c) => seedCategoryId(userId, c.kind, c.name)),
   )
@@ -33,8 +29,14 @@ export async function ensureCategoriesSeeded(
     position: positions[c.kind]!++,
   }))
 
-  await db.transaction('rw', db.categories, db.outbox, async () => {
+  // La verificación va dentro de la transacción para que dos llamadas
+  // concurrentes no siembren dos veces.
+  return db.transaction('rw', db.categories, db.outbox, async () => {
+    const existing = await db.categories
+      .filter((c) => c.user_id === userId)
+      .count()
+    if (existing > 0) return false
     for (const row of rows) await repo.put('categories', row)
+    return true
   })
-  return true
 }

@@ -51,5 +51,6 @@ export const PALETTE: readonly string[] = [
 
 /** Color de la paleta para el índice `i` (cíclico, `i` no negativo). */
 export function colorAt(i: number): string {
-  return PALETTE[i % PALETTE.length]!
+  const n = PALETTE.length
+  return PALETTE[((i % n) + n) % n]!
 }
