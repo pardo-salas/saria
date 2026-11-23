@@ -91,10 +91,7 @@ function CategoryForm({
   }
 
   function save() {
-    if (kind === 'expense' && !limitValid) {
-      limitRef.current?.focus()
-      return
-    }
+    const limitBlocked = kind === 'expense' && !limitValid
     const monthly = kind === 'expense' ? limit : null
     const result = validateCategory(
       { id: category?.id, name, kind, monthly_limit_cents: monthly },
@@ -105,9 +102,15 @@ function CategoryForm({
         name: result.errors.name,
         limit: result.errors.monthly_limit_cents,
       })
+      // El texto inválido del límite lo explica el propio campo; solo se le da el foco.
+      if (limitBlocked) limitRef.current?.focus()
       return
     }
     setErrors({})
+    if (limitBlocked) {
+      limitRef.current?.focus()
+      return
+    }
     void run(async () => {
       await repo.put('categories', {
         ...(category ? rowOf(category) : null),
@@ -158,7 +161,11 @@ function CategoryForm({
             { value: 'income', label: 'Ingreso' },
           ]}
           value={kind}
-          onChange={setKind}
+          onChange={(next) => {
+            setKind(next)
+            // El campo del límite se desmonta al salir de gasto y vuelve vacío.
+            setLimitValid(true)
+          }}
         />
       )}
       {kind === 'expense' && (

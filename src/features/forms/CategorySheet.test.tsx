@@ -45,6 +45,43 @@ describe('CategorySheet', () => {
     expect(await db.categories.count()).toBe(0)
   })
 
+  it('cambiar de tipo y volver no deja un límite inválido bloqueando el guardado', async () => {
+    const c = cat({ id: 'c1', name: 'Comida' })
+    await db.categories.put(c)
+    const user = userEvent.setup()
+    render(
+      <Providers>
+        <CategorySheet open onClose={() => {}} kind="expense" category={c} />
+      </Providers>,
+    )
+    await user.type(
+      await screen.findByLabelText('Límite mensual (opcional)'),
+      'abc',
+    )
+    await user.click(screen.getByRole('radio', { name: 'Ingreso' }))
+    await user.click(screen.getByRole('radio', { name: 'Gasto' }))
+    await user.click(screen.getByRole('button', { name: 'Guardar' }))
+    await waitFor(async () =>
+      expect((await db.categories.get('c1'))?.updated_at).not.toBe(
+        c.updated_at,
+      ),
+    )
+    expect((await db.categories.get('c1'))?.monthly_limit_cents).toBeNull()
+  })
+
+  it('un nombre vacío y un límite inválido se muestran juntos', async () => {
+    const user = userEvent.setup()
+    render(
+      <Providers>
+        <CategorySheet open onClose={() => {}} kind="expense" />
+      </Providers>,
+    )
+    await user.type(screen.getByLabelText('Límite mensual (opcional)'), 'abc')
+    await user.click(screen.getByRole('button', { name: 'Guardar' }))
+    expect(await screen.findByText('Escribe un nombre')).toBeInTheDocument()
+    expect(screen.getByText('Escribe un monto válido')).toBeInTheDocument()
+  })
+
   it('una categoría duplicada muestra el mensaje exacto', async () => {
     await db.categories.put(cat({ id: 'c1', name: 'Comida' }))
     const user = userEvent.setup()
