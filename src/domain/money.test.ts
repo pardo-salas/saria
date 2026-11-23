@@ -1,4 +1,14 @@
-import { formatCents, parseToCents, MAX_CENTS } from './money'
+import { formatCents, parseToCents, sumCents, MAX_CENTS } from './money'
+
+describe('sumCents', () => {
+  it('suma enteros', () => {
+    expect(sumCents([100, -30, 5])).toBe(75)
+    expect(sumCents([])).toBe(0)
+  })
+  it('lanza RangeError si el resultado no es entero seguro', () => {
+    expect(() => sumCents([Number.MAX_SAFE_INTEGER, 1])).toThrow(RangeError)
+  })
+})
 
 describe('formatCents', () => {
   it.each([

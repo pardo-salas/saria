@@ -23,7 +23,17 @@ export function formatCents(cents: number): string {
   return cents < 0 ? `\u2212${text}` : text
 }
 
-const PLAIN_INT = /^\d+$/
+/** Suma centavos como enteros; lanza RangeError si el resultado no es entero seguro. */
+export function sumCents(values: Iterable<number>): number {
+  let total = 0
+  for (const v of values) total += v
+  if (!Number.isSafeInteger(total)) {
+    throw new RangeError(`La suma de centavos no es un entero seguro: ${total}`)
+  }
+  return total
+}
+
+const PLAIN_INT =/^\d+$/
 const GROUPED_INT = /^\d{1,3}(,\d{3})+$/
 
 function fail(error: ParseError): ParseResult {
