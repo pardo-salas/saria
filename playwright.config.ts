@@ -10,6 +10,12 @@ export default defineConfig({
   webServer: {
     command: 'npm run build && npm run preview -- --port 4173 --strictPort',
     url: 'http://localhost:4173',
-    reuseExistingServer: !process.env.CI,
+    // Siempre un build propio: un preview ajeno podría no tener estas variables.
+    reuseExistingServer: false,
+    timeout: 180_000,
+    env: {
+      VITE_SUPABASE_URL: 'http://127.0.0.1:54321',
+      VITE_SUPABASE_ANON_KEY: 'e2e-anon',
+    },
   },
 })
