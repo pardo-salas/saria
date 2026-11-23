@@ -1,4 +1,5 @@
 import { useId, useState } from 'react'
+import type { Ref } from 'react'
 import { formatCents, parseToCents, type ParseError } from '@/domain/money'
 
 export interface AmountInputProps {
@@ -6,6 +7,8 @@ export interface AmountInputProps {
   valueCents: number | null
   onChange(cents: number | null): void
   error?: string
+  autoFocus?: boolean
+  inputRef?: Ref<HTMLInputElement>
 }
 
 const MESSAGES: Record<Exclude<ParseError, 'empty'>, string> = {
@@ -34,17 +37,24 @@ export function AmountInput({
   valueCents,
   onChange,
   error,
+  autoFocus,
+  inputRef,
 }: AmountInputProps) {
   const id = useId()
   const errorId = `${id}-error`
   const [text, setText] = useState(() => toText(valueCents))
   const [focused, setFocused] = useState(false)
   const [prevValue, setPrevValue] = useState(valueCents)
+  // Último monto que salió de este campo: distingue lo que escribió la persona de un cambio del padre.
+  const [emitted, setEmitted] = useState<number | null>(valueCents)
 
-  // Si el padre cambia el valor mientras no se edita, el texto lo sigue.
+  // Si el padre cambia el valor, el texto lo sigue; con foco solo se vacía cuando
+  // el padre pone null sobre un monto válido (p. ej. al limpiar el formulario).
   if (valueCents !== prevValue) {
     setPrevValue(valueCents)
     if (!focused) setText(toText(valueCents))
+    else if (valueCents === null && emitted !== null) setText('')
+    setEmitted(valueCents)
   }
 
   const message = error ?? messageFor(text)
@@ -69,6 +79,9 @@ export function AmountInput({
         </span>
         <input
           id={id}
+          ref={inputRef}
+          // eslint-disable-next-line jsx-a11y/no-autofocus -- lo decide quien arma la pantalla (captura rápida)
+          autoFocus={autoFocus}
           type="text"
           inputMode="decimal"
           autoComplete="off"
@@ -82,7 +95,9 @@ export function AmountInput({
             const next = event.target.value
             setText(next)
             const result = parseToCents(next)
-            onChange(result.ok ? result.cents : null)
+            const emittedCents = result.ok ? result.cents : null
+            setEmitted(emittedCents)
+            onChange(emittedCents)
           }}
           onBlur={() => {
             setFocused(false)
@@ -92,11 +107,13 @@ export function AmountInput({
           className="w-full min-w-0 bg-transparent text-4xl font-bold tracking-tight text-texto cifras placeholder:text-texto-suave/50 focus:outline-none"
         />
       </div>
-      {message && (
-        <p id={errorId} className="mt-1.5 text-sm text-gasto">
-          {message}
-        </p>
-      )}
+      <div aria-live="polite">
+        {message && (
+          <p id={errorId} className="mt-1.5 text-sm text-gasto">
+            {message}
+          </p>
+        )}
+      </div>
     </div>
   )
 }

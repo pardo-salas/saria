@@ -8,32 +8,39 @@ export function List({ children }: { children: ReactNode }) {
 export interface ListItemProps {
   title: string
   subtitle?: string
-  /** Color de la categoría o cuenta (dato del usuario); sin él, superficie-2. */
-  iconColor?: string
-  /** Entero positivo en centavos; el signo lo da `kind`. */
+  /** Normalmente un <AppIcon />. */
+  icon?: ReactNode
+  /** En centavos y con signo: positivo es ingreso, negativo es gasto. */
   amountCents?: number
-  kind?: 'income' | 'expense'
+  /** `auto` colorea por signo; `neutral` usa el color del texto (traspasos). */
+  tone?: 'auto' | 'neutral'
+  /** Con onClick el renglón completo es un botón. */
+  onClick?(): void
+}
+
+function formatAmount(cents: number, tone: 'auto' | 'neutral'): string {
+  if (cents > 0 && tone === 'auto') return '+' + formatCents(cents)
+  return formatCents(cents)
 }
 
 export function ListItem({
   title,
   subtitle,
-  iconColor,
+  icon,
   amountCents,
-  kind = 'expense',
+  tone = 'auto',
+  onClick,
 }: ListItemProps) {
-  const hasAmount = amountCents !== undefined
-  const amount = hasAmount
-    ? (kind === 'income' ? '+' : '−') + formatCents(Math.abs(amountCents))
-    : null
+  const amountColor =
+    tone === 'neutral' || amountCents === undefined || amountCents === 0
+      ? 'text-texto'
+      : amountCents > 0
+        ? 'text-agua'
+        : 'text-gasto'
 
-  return (
-    <li className="flex min-h-14 items-center gap-3 py-2">
-      <span
-        aria-hidden="true"
-        className="size-9 shrink-0 rounded-xl bg-superficie-2"
-        style={iconColor ? { backgroundColor: iconColor } : undefined}
-      />
+  const content = (
+    <>
+      {icon}
       <div className="min-w-0 flex-1">
         <p className="truncate text-base leading-snug font-medium">{title}</p>
         {subtitle && (
@@ -42,15 +49,30 @@ export function ListItem({
           </p>
         )}
       </div>
-      {amount && (
+      {amountCents !== undefined && (
         <span
-          className={[
-            'shrink-0 text-base font-semibold cifras',
-            kind === 'income' ? 'text-agua' : 'text-gasto',
-          ].join(' ')}
+          className={`shrink-0 text-base font-semibold cifras ${amountColor}`}
         >
-          {amount}
+          {formatAmount(amountCents, tone)}
         </span>
+      )}
+    </>
+  )
+
+  const row = 'flex min-h-14 w-full items-center gap-3 py-2 text-left'
+
+  return (
+    <li>
+      {onClick ? (
+        <button
+          type="button"
+          onClick={onClick}
+          className={`${row} cursor-pointer rounded-boton transition-colors duration-150 hover:bg-superficie-2/60 active:bg-superficie-2`}
+        >
+          {content}
+        </button>
+      ) : (
+        <div className={row}>{content}</div>
       )}
     </li>
   )

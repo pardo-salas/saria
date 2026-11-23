@@ -75,7 +75,7 @@ export function Sheet({ open, onClose, title, children }: SheetProps) {
   if (!open) return null
 
   return createPortal(
-    <div className="fixed inset-0 z-40 flex items-end justify-center">
+    <div className="fixed inset-0 z-40 flex items-end justify-center lg:items-center">
       {/* El fondo es solo para el puntero; con teclado se cierra con Escape. */}
       {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
       <div
@@ -89,7 +89,7 @@ export function Sheet({ open, onClose, title, children }: SheetProps) {
         aria-modal="true"
         aria-labelledby={titleId}
         tabIndex={-1}
-        className="relative flex max-h-[85dvh] w-full max-w-lg flex-col rounded-t-tarjeta border-t border-borde bg-superficie pb-[env(safe-area-inset-bottom)] text-texto transition-transform duration-300 ease-[cubic-bezier(0.2,0.8,0.2,1)] focus-visible:outline-none motion-reduce:transition-none starting:translate-y-full"
+        className="relative flex max-h-[85dvh] w-full max-w-lg flex-col rounded-t-tarjeta border-t border-borde bg-superficie pb-[env(safe-area-inset-bottom)] text-texto transition-transform duration-300 ease-[cubic-bezier(0.2,0.8,0.2,1)] focus-visible:outline-none motion-reduce:transition-none lg:rounded-tarjeta lg:border starting:translate-y-full lg:starting:translate-y-4"
       >
         <div
           aria-hidden="true"

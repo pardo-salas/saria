@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { useState } from 'react'
+import { createRef, useState } from 'react'
 import { AmountInput } from './AmountInput'
 
 function Controlled({
@@ -106,5 +106,56 @@ describe('AmountInput', () => {
       <AmountInput label="Monto" valueCents={null} onChange={() => {}} />,
     )
     expect(input).toHaveValue('')
+  })
+
+  it('con foco, si el padre pone valueCents en null el input queda vacío', () => {
+    const { rerender } = render(
+      <AmountInput label="Monto" valueCents={1250} onChange={() => {}} />,
+    )
+    const input = screen.getByRole('textbox', { name: 'Monto' })
+    input.focus()
+    expect(input).toHaveFocus()
+    rerender(
+      <AmountInput label="Monto" valueCents={null} onChange={() => {}} />,
+    )
+    expect(input).toHaveValue('')
+  })
+
+  it('texto inválido tras un monto válido no borra lo escrito', async () => {
+    render(<Controlled onChange={() => {}} />)
+    const input = screen.getByRole('textbox', { name: 'Monto' })
+    await userEvent.type(input, '5x')
+    expect(input).toHaveValue('5x')
+  })
+
+  it('el error vive en una región aria-live="polite"', () => {
+    const { container } = render(
+      <AmountInput
+        label="Monto"
+        valueCents={null}
+        onChange={() => {}}
+        error="Escribe el monto"
+      />,
+    )
+    const live = container.querySelector('[aria-live="polite"]')
+    expect(live).not.toBeNull()
+    expect(live).toHaveTextContent('Escribe el monto')
+  })
+
+  it('acepta autoFocus e inputRef', () => {
+    const ref = createRef<HTMLInputElement>()
+    render(
+      <AmountInput
+        label="Monto"
+        valueCents={null}
+        onChange={() => {}}
+        // eslint-disable-next-line jsx-a11y/no-autofocus -- se prueba justamente la prop
+        autoFocus
+        inputRef={ref}
+      />,
+    )
+    const input = screen.getByRole('textbox', { name: 'Monto' })
+    expect(input).toHaveFocus()
+    expect(ref.current).toBe(input)
   })
 })
