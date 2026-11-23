@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!--
+    Ícono de Saria: una laguna redonda con el nivel de agua a poco más de
+    media altura, la misma idea que BrandMark y la tarjeta de Inicio.
+    El círculo mide 72 % del lienzo para caber en la zona segura de los
+    íconos maskable (círculo central de 80 %).
+  -->
+  <defs>
+    <clipPath id="laguna">
+      <circle cx="256" cy="256" r="184" />
+    </clipPath>
+    <linearGradient id="agua" x1="0" y1="230" x2="0" y2="440" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#2F5BE0" />
+      <stop offset="1" stop-color="#1B3A9E" />
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="#070F22" />
+  <circle cx="256" cy="256" r="184" fill="#16264A" />
+  <g clip-path="url(#laguna)">
+    <path d="M40 252 Q256 218 472 252 V480 H40 Z" fill="url(#agua)" />
+    <path d="M40 252 Q256 218 472 252" fill="none" stroke="#5FE0C2" stroke-width="20" />
+  </g>
+</svg>

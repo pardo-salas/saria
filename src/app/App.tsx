@@ -1,6 +1,7 @@
 import { BrowserRouter } from 'react-router'
 import { AppRoutes } from './router'
 import { SessionProvider } from './SessionProvider'
+import { UpdatePrompt } from './UpdatePrompt'
 
 export function App() {
   return (
@@ -8,6 +9,7 @@ export function App() {
       <BrowserRouter>
         <AppRoutes />
       </BrowserRouter>
+      <UpdatePrompt />
     </SessionProvider>
   )
 }
