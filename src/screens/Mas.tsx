@@ -2,8 +2,7 @@ import { useId, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { useSessionContext } from '@/app/SessionProvider'
 import { useTheme } from '@/app/ThemeProvider'
-import { db } from '@/db/dexie'
-import { repo } from '@/db/repo'
+import { updateSettings } from '@/db/settings'
 import type { ThemePref } from '@/domain/theme'
 import { Button } from '@/ui/Button'
 import { Card } from '@/ui/Card'
@@ -16,17 +15,6 @@ const THEME_OPTIONS: { value: ThemePref; label: string }[] = [
   { value: 'dark', label: 'Oscuro' },
 ]
 
-/** Guarda el tema en la fila de settings del usuario sin tocar lo demás. */
-async function saveTheme(userId: string, theme: ThemePref): Promise<void> {
-  const existing = await db.settings.get(userId)
-  await repo.put('settings', {
-    monthly_income_cents: existing?.monthly_income_cents ?? null,
-    pay_frequency: existing?.pay_frequency ?? null,
-    currency: 'MXN',
-    theme,
-  })
-}
-
 function ThemePicker() {
   const { pref, setPref } = useTheme()
   const { userId } = useSessionContext()
@@ -37,7 +25,7 @@ function ThemePicker() {
   function choose(theme: ThemePref) {
     setPref(theme)
     if (userId === null) return
-    saveTheme(userId, theme).catch(() => {
+    updateSettings({ theme }).catch(() => {
       // El tema ya se aplicó y quedó en este dispositivo; si la escritura
       // local falla, solo se pierde que viaje a otros dispositivos.
     })

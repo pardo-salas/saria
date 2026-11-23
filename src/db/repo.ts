@@ -8,6 +8,13 @@ export class NotSignedInError extends Error {
   }
 }
 
+export class RowNotFoundError extends Error {
+  constructor(table: string, id: string) {
+    super(`No existe la fila ${id} en ${table}`)
+    this.name = 'RowNotFoundError'
+  }
+}
+
 export type NewRow<T extends SyncedTableName> = Omit<
   RowOf<T>,
   keyof SyncedRow
@@ -46,6 +53,7 @@ export function createRepo(
   async function put<T extends SyncedTableName>(
     table: T,
     row: NewRow<T>,
+    opts?: { created_at?: string },
   ): Promise<RowOf<T>> {
     const userId = requireUser()
     assertCents(row)
@@ -57,7 +65,7 @@ export function createRepo(
         ...row,
         id,
         user_id: userId,
-        created_at: existing?.created_at ?? stamp,
+        created_at: existing?.created_at ?? opts?.created_at ?? stamp,
         updated_at: stamp,
         deleted_at: existing?.deleted_at ?? null,
       } as RowOf<T>
@@ -79,7 +87,8 @@ export function createRepo(
     const stamp = now()
     await db.transaction('rw', db.table(table), db.outbox, async () => {
       const existing = (await db.table(table).get(id)) as SyncedRow | undefined
-      if (!existing) throw new Error(`La fila ${id} no existe en ${table}`)
+      if (!existing) throw new RowNotFoundError(table, id)
+      if (existing.deleted_at !== null) return
       const saved = { ...existing, deleted_at: stamp, updated_at: stamp }
       await db.table(table).put(saved)
       await db.outbox.add({
@@ -96,6 +105,8 @@ export function createRepo(
   return { put, softDelete }
 }
 
+export type Repo = ReturnType<typeof createRepo>
+
 let userSource: () => string | null = () => null
 
 /**
@@ -104,6 +115,13 @@ let userSource: () => string | null = () => null
  */
 export function setRepoUserSource(fn: () => string | null): void {
   userSource = fn
+}
+
+/** Usuario actual según la fuente del repo; lanza si no hay sesión. */
+export function currentUserId(): string {
+  const userId = userSource()
+  if (userId === null) throw new NotSignedInError()
+  return userId
 }
 
 export const repo = createRepo(db, () => userSource())

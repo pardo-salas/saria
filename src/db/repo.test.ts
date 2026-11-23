@@ -4,6 +4,7 @@ import {
   createRepo,
   NotSignedInError,
   repo as appRepo,
+  RowNotFoundError,
   setRepoUserSource,
 } from './repo'
 
@@ -159,8 +160,85 @@ describe('repo', () => {
       () => T1,
     )
     await expect(repo.softDelete('accounts', 'nope')).rejects.toThrow(
-      /no existe/,
+      'No existe la fila nope en accounts',
     )
+    expect(await db.accounts.count()).toBe(0)
+    expect(await db.outbox.count()).toBe(0)
+  })
+
+  it('softDelete de una fila ya borrada no cambia updated_at ni encola', async () => {
+    const db = await open()
+    let now = T1
+    const repo = createRepo(
+      db,
+      () => USER,
+      () => now,
+    )
+    const saved = await repo.put('accounts', account)
+    await repo.softDelete('accounts', saved.id)
+    now = T2
+    await repo.softDelete('accounts', saved.id)
+    const row = await db.accounts.get(saved.id)
+    expect(row?.updated_at).toBe(T1)
+    expect(row?.deleted_at).toBe(T1)
+    expect(await db.outbox.count()).toBe(2)
+  })
+
+  it('softDelete de una fila inexistente lanza RowNotFoundError', async () => {
+    const db = await open()
+    const repo = createRepo(
+      db,
+      () => USER,
+      () => T1,
+    )
+    await expect(repo.softDelete('accounts', 'nope')).rejects.toBeInstanceOf(
+      RowNotFoundError,
+    )
+  })
+
+  it('put con created_at en una fila nueva lo conserva', async () => {
+    const db = await open()
+    const repo = createRepo(
+      db,
+      () => USER,
+      () => T2,
+    )
+    const saved = await repo.put('accounts', account, { created_at: T1 })
+    expect(saved.created_at).toBe(T1)
+    expect(saved.updated_at).toBe(T2)
+  })
+
+  it('put con created_at sobre una fila existente lo ignora', async () => {
+    const db = await open()
+    let now = T1
+    const repo = createRepo(
+      db,
+      () => USER,
+      () => now,
+    )
+    const first = await repo.put('accounts', account)
+    now = T2
+    const second = await repo.put(
+      'accounts',
+      { ...account, id: first.id },
+      { created_at: '2020-01-01T00:00:00.000Z' },
+    )
+    expect(second.created_at).toBe(T1)
+  })
+
+  it('put anidado en una transacción externa se revierte con ella', async () => {
+    const db = await open()
+    const repo = createRepo(
+      db,
+      () => USER,
+      () => T1,
+    )
+    await expect(
+      db.transaction('rw', db.accounts, db.outbox, async () => {
+        await repo.put('accounts', account)
+        throw new Error('x')
+      }),
+    ).rejects.toThrow('x')
     expect(await db.accounts.count()).toBe(0)
     expect(await db.outbox.count()).toBe(0)
   })
