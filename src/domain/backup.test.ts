@@ -204,6 +204,22 @@ describe('parseBackup', () => {
       error(text((b) => (b.tables.transfers![0]!.to_account_id = A1))),
     ).toBe('Una transferencia tiene la misma cuenta de origen y destino')
   })
+  it('rechaza monto obligatorio nulo', () => {
+    expect(
+      error(text((b) => (b.tables.transactions![0]!.amount_cents = null))),
+    ).toBe('Hay un monto inválido en transactions')
+  })
+  it('rechaza versión no entera o menor a 1', () => {
+    for (const v of [0, 1.5, '1']) {
+      const b = JSON.parse(text()) as { version: unknown }
+      b.version = v
+      expect(error(JSON.stringify(b))).toBe(notSaria)
+    }
+  })
+  it('descarta llaves desconocidas', () => {
+    const r = parseBackup(text((b) => (b.tables.accounts![0]!.extra = 'x')))
+    expect(r.ok && 'extra' in r.backup.tables.accounts[0]!).toBe(false)
+  })
   it('acepta category_id nulo', () => {
     expect(
       parseBackup(text((b) => (b.tables.transactions![0]!.category_id = null)))

@@ -33,6 +33,15 @@ export function backupFileName(date: string): string {
   return `saria-respaldo-${date}.json`
 }
 
+/** Montos que el esquema no permite nulos. */
+const REQUIRED_CENTS: Partial<Record<SyncedTableName, readonly string[]>> = {
+  accounts: ['initial_balance_cents'],
+  transactions: ['amount_cents'],
+  transfers: ['amount_cents'],
+  recurring_payments: ['amount_cents'],
+  installment_plans: ['total_cents', 'monthly_cents'],
+}
+
 const TABLES = Object.keys(COLUMNS) as SyncedTableName[]
 
 function isRecord(v: unknown): v is Record<string, unknown> {
@@ -57,8 +66,10 @@ export function parseBackup(text: string): BackupCheck {
   for (const table of TABLES) {
     if (!Array.isArray(tables[table])) return fail(NOT_BACKUP)
   }
-  if (typeof data.version !== 'number') return fail(NOT_BACKUP)
-  if (data.version > BACKUP_VERSION)
+  const version = data.version
+  if (typeof version !== 'number' || !Number.isInteger(version) || version < 1)
+    return fail(NOT_BACKUP)
+  if (version > BACKUP_VERSION)
     return fail('Este respaldo es de una versión más nueva de Saria')
 
   const rowsOf = (table: SyncedTableName) =>
@@ -70,12 +81,11 @@ export function parseBackup(text: string): BackupCheck {
       for (const col of COLUMNS[table]) {
         if (!(col in row)) return fail(`Falta la columna ${col} en ${table}`)
       }
-      for (const [key, value] of Object.entries(row)) {
-        if (
-          key.endsWith('_cents') &&
-          value !== null &&
-          !Number.isSafeInteger(value)
-        )
+      for (const col of COLUMNS[table]) {
+        if (!col.endsWith('_cents')) continue
+        const value = row[col]
+        const required = REQUIRED_CENTS[table]?.includes(col) ?? false
+        if (value === null ? required : !Number.isSafeInteger(value))
           return fail(`Hay un monto inválido en ${table}`)
       }
       if (typeof row.id !== 'string' || !UUID_RE.test(row.id))
@@ -109,5 +119,24 @@ export function parseBackup(text: string): BackupCheck {
   const counts = Object.fromEntries(
     TABLES.map((t) => [t, rowsOf(t).length]),
   ) as Record<SyncedTableName, number>
-  return { ok: true, backup: data as unknown as Backup, counts }
+  // Solo se conservan las columnas conocidas: las llaves extra no deben llegar
+  // a Dexie ni al outbox (el upsert a Postgres fallaría con columnas ajenas).
+  const clean = Object.fromEntries(
+    TABLES.map((t) => [
+      t,
+      rowsOf(t).map((row) =>
+        Object.fromEntries(COLUMNS[t].map((c) => [c, row[c]])),
+      ),
+    ]),
+  ) as unknown as BackupTables
+  return {
+    ok: true,
+    backup: {
+      format: BACKUP_FORMAT,
+      version,
+      exported_at: String(data.exported_at ?? ''),
+      tables: clean,
+    },
+    counts,
+  }
 }

@@ -191,6 +191,26 @@ describe('restoreBackup', () => {
     expect(t.settings[0]).toMatchObject({ id: NEW_USER, theme: 'dark' })
   })
 
+  it('las llaves extra del archivo no llegan a Dexie ni al outbox', async () => {
+    const src = await open()
+    await populate(src)
+    const raw = JSON.parse(
+      JSON.stringify(buildBackup(await readLiveTables(src, USER), T2)),
+    ) as { tables: Record<string, Record<string, unknown>[]> }
+    raw.tables.accounts![0]!.extra = 'x'
+    const dst = await open()
+    await restoreBackup(
+      dst,
+      makeRepo(dst, USER, T2),
+      USER,
+      parseOk(raw as unknown as Backup),
+    )
+    for (const row of await dst.accounts.toArray())
+      expect('extra' in row).toBe(false)
+    for (const o of await dst.outbox.toArray())
+      expect('extra' in o.payload).toBe(false)
+  })
+
   it('una fila borrada localmente que está en el archivo revive', async () => {
     const db = await open()
     const { a1 } = await populate(db)
