@@ -33,7 +33,7 @@ export function sumCents(values: Iterable<number>): number {
   return total
 }
 
-const PLAIN_INT =/^\d+$/
+const PLAIN_INT = /^\d+$/
 const GROUPED_INT = /^\d{1,3}(,\d{3})+$/
 
 function fail(error: ParseError): ParseResult {

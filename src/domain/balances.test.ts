@@ -164,6 +164,18 @@ describe('periodSummary', () => {
   })
 })
 
+describe('periodSummary (archivadas)', () => {
+  it('incluye movimientos de una cuenta archivada', () => {
+    // periodSummary no recibe cuentas: suma todos los movimientos que le pasan.
+    const s = periodSummary(
+      [tx({ kind: 'expense', amount_cents: 70, date: '2026-11-22', account_id: 'archivada' })],
+      '2026-11-22',
+    )
+    expect(s.today.expenseCents).toBe(70)
+    expect(s.month.expenseCents).toBe(70)
+  })
+})
+
 describe('waterLevel', () => {
   it('calcula lo que queda', () => {
     expect(waterLevel(1860000, 742000, 8)).toEqual({
@@ -178,6 +190,9 @@ describe('waterLevel', () => {
       remainingCents: -140000,
       percent: 0,
     })
+  })
+  it('sueldo 0 cuenta como sin sueldo', () => {
+    expect(waterLevel(0, 100, 5)).toEqual({ state: 'no-salary' })
   })
   it('sin sueldo', () => {
     expect(waterLevel(null, 5, 1)).toEqual({ state: 'no-salary' })

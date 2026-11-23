@@ -2,6 +2,8 @@ import type { Account, Transaction, Transfer } from '../db/schema'
 import { monthKey } from './dates'
 import { sumCents } from './money'
 
+// Todas las funciones esperan filas vivas (deleted_at === null); quien llama filtra.
+
 /** Saldo por cuenta: inicial + ingresos − gastos + transferencias entrantes − salientes (todas las fechas). */
 export function balancesByAccount(
   accounts: Account[],
@@ -11,7 +13,8 @@ export function balancesByAccount(
   const parts = new Map<string, number[]>()
   for (const a of accounts) parts.set(a.id, [a.initial_balance_cents])
   for (const t of txs) {
-    parts.get(t.account_id)?.push(t.kind === 'income' ? t.amount_cents : -t.amount_cents)
+    if (t.kind === 'income') parts.get(t.account_id)?.push(t.amount_cents)
+    else if (t.kind === 'expense') parts.get(t.account_id)?.push(-t.amount_cents)
   }
   for (const r of transfers) {
     parts.get(r.to_account_id)?.push(r.amount_cents)
@@ -86,8 +89,7 @@ export interface Flow {
 function flowOf(txs: Transaction[]): Flow {
   return {
     incomeCents: sumCents(txs.filter((t) => t.kind === 'income').map((t) => t.amount_cents)),
-    expenseCents: sumCents(txs.filter((t) => t.kind === 'expense').map((t) => t.amount_cents)),
-  }
+    expenseCents: sumCents(txs.filter((t) => t.kind === 'expense').map((t) => t.amount_cents)),  }
 }
 
 /** Ingresos y gastos de hoy y del mes actual, de todas las cuentas. */
