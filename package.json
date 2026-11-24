@@ -17,7 +17,8 @@
     "test:e2e": "playwright test",
     "generate-pwa-assets": "pwa-assets-generator",
     "importar": "node scripts/importar-money-manager.mjs",
-    "importar-pagos": "node scripts/importar-pagos-habituales.mjs"
+    "importar-pagos": "node scripts/importar-pagos-habituales.mjs",
+    "importar-excel": "node scripts/importar-excel.mjs"
   },
   "dependencies": {
     "@fontsource-variable/bricolage-grotesque": "^5.3.0",

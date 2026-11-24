@@ -74,19 +74,15 @@ describe('Respaldo: agregar pagos habituales', () => {
       user_id: 'u1',
     } as never)
     renderRespaldo()
-    const input = screen.getByLabelText('Archivo de pagos habituales')
+    const input = screen.getByLabelText('Archivo para agregar')
     await user.upload(input, file([row(ID_A, 'Agua'), row(ID_B, 'Gym')]))
     expect(
       await screen.findByText(
         'Se agregarán 2 pagos habituales (0 ya existen y se actualizarán)',
       ),
     ).toBeInTheDocument()
-    await user.click(
-      screen.getByRole('button', { name: 'Agregar pagos habituales' }),
-    )
-    expect(
-      await screen.findByText('Pagos habituales agregados'),
-    ).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Agregar datos' }))
+    expect(await screen.findByText('Datos agregados')).toBeInTheDocument()
     expect(await db.recurring_payments.count()).toBe(3)
     expect((await db.recurring_payments.get(ID_LUZ))?.name).toBe('Luz')
 
@@ -96,9 +92,7 @@ describe('Respaldo: agregar pagos habituales', () => {
         'Se agregarán 0 pagos habituales (2 ya existen y se actualizarán)',
       ),
     ).toBeInTheDocument()
-    await user.click(
-      screen.getByRole('button', { name: 'Agregar pagos habituales' }),
-    )
+    await user.click(screen.getByRole('button', { name: 'Agregar datos' }))
     await vi.waitFor(async () => expect(await db.outbox.count()).toBe(4))
     expect(await db.recurring_payments.count()).toBe(3)
   })
@@ -107,7 +101,7 @@ describe('Respaldo: agregar pagos habituales', () => {
     const user = userEvent.setup()
     renderRespaldo()
     await user.upload(
-      screen.getByLabelText('Archivo de pagos habituales'),
+      screen.getByLabelText('Archivo para agregar'),
       file([row(ID_A, 'Agua')]),
     )
     expect(await screen.findByRole('alert')).toHaveTextContent(

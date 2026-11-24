@@ -50,9 +50,23 @@ export function createInstallmentOps(db: SariaDB, repo: Repo) {
         db.installment_plans,
         db.outbox,
         async () => {
+          // Meses que ya tienen un cargo ligado al plan (p. ej. un movimiento
+          // re-etiquetado desde un pago habitual): no se cobra otra vez.
+          const linkedMonths = new Set(
+            (
+              await db.transactions
+                .filter(
+                  (t) =>
+                    t.deleted_at === null && t.installment_plan_id === p.id,
+                )
+                .toArray()
+            ).map((t) => t.date.slice(0, 7)),
+          )
           for (let i = 0; i < numbers.length; i++) {
             // Si otro dispositivo ya la creó (o se borró), no se vuelve a escribir.
             if (await db.transactions.get(ids[i]!)) continue
+            if (linkedMonths.has(chargeDate(p, numbers[i]!).slice(0, 7)))
+              continue
             await repo.put('transactions', {
               id: ids[i]!,
               kind: 'expense',

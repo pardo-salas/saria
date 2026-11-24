@@ -166,19 +166,19 @@ const decodificar = (s) =>
     .replace(/&apos;/g, "'")
     .replace(/&amp;/g, '&')
 
-/** Filas 4–14 de la hoja "Resumen General": { gasto, importe, cuenta, fechaPago }. */
-export function leerExcel(ruta) {
+/** Celdas de una hoja del Excel: Map "A1" → texto (los números, tal cual vienen). */
+export function leerCeldas(ruta, nombreHoja) {
   const z = unzipSync(readFileSync(ruta))
   const texto = (n) => strFromU8(z[n])
   const libro = texto('xl/workbook.xml')
-  const hoja = /<sheet [^>]*name="Resumen General"[^>]*r:id="([^"]+)"/.exec(
-    libro,
-  )
-  if (!hoja) throw new Error('El Excel no tiene la hoja "Resumen General"')
+  const hoja = new RegExp(
+    `<sheet [^>]*name="${nombreHoja}"[^>]*r:id="([^"]+)"`,
+  ).exec(libro)
+  if (!hoja) throw new Error(`El Excel no tiene la hoja "${nombreHoja}"`)
   const rels = texto('xl/_rels/workbook.xml.rels')
   const rel = new RegExp(`<Relationship [^>]*Id="${hoja[1]}"[^>]*>`).exec(rels)
   const destino = /Target="([^"]+)"/.exec(rel?.[0] ?? '')?.[1]
-  if (!destino) throw new Error('No se encontró la hoja "Resumen General"')
+  if (!destino) throw new Error(`No se encontró la hoja "${nombreHoja}"`)
   const ruta_hoja = destino.startsWith('/')
     ? destino.slice(1)
     : `xl/${destino.replace(/^\.?\//, '')}`
@@ -209,6 +209,12 @@ export function leerExcel(ruta) {
       )
     else if (v !== undefined) celdas.set(c[1], decodificar(v))
   }
+  return celdas
+}
+
+/** Filas 4–14 de la hoja "Resumen General": { gasto, importe, cuenta, fechaPago }. */
+export function leerExcel(ruta) {
+  const celdas = leerCeldas(ruta, 'Resumen General')
   const filas = []
   for (let r = 4; r <= 14; r++) {
     const gasto = celdas.get(`A${r}`)?.trim()
@@ -225,7 +231,7 @@ export function leerExcel(ruta) {
 
 // --- Construcción ---
 
-function leerRecordatorios(ruta) {
+export function leerRecordatorios(ruta) {
   const carpeta = mkdtempSync(join(tmpdir(), 'saria-pagos-'))
   let db
   try {

@@ -8,6 +8,7 @@ import { readLiveTables, restoreBackup } from '@/db/backup'
 import { useToday } from '@/db/queries'
 import { repo } from '@/db/repo'
 import { addRecurringPayments } from '@/db/recurringFile'
+import { applyExcelFile } from '@/db/excelFile'
 import {
   backupFileName,
   buildBackup,
@@ -15,6 +16,11 @@ import {
   type Backup,
 } from '@/domain/backup'
 import { TIME_ZONE } from '@/domain/dates'
+import {
+  excelPreview,
+  parseExcelFile,
+  type ExcelFile,
+} from '@/domain/excelFile'
 import { parseRecurringFile, type RecurringRow } from '@/domain/recurringFile'
 import { Button } from '@/ui/Button'
 import { Card } from '@/ui/Card'
@@ -27,9 +33,20 @@ interface Pending {
   preview: string
 }
 
-interface PendingPayments {
-  rows: RecurringRow[]
-  preview: string
+type PendingFile =
+  | { kind: 'recurring'; rows: RecurringRow[]; preview: string }
+  | { kind: 'excel'; file: ExcelFile; preview: string }
+
+/** Formato declarado por el archivo, o null si no es un JSON de Saria. */
+function fileFormat(text: string): string | null {
+  try {
+    const data: unknown = JSON.parse(text)
+    if (typeof data === 'object' && data !== null && 'format' in data)
+      return String((data as { format: unknown }).format)
+  } catch {
+    /* no es JSON */
+  }
+  return null
 }
 
 function formatExported(iso: string): string {
@@ -52,8 +69,7 @@ export function Respaldo() {
   const [busy, setBusy] = useState(false)
   const paymentsInput = useRef<HTMLInputElement>(null)
   const [paymentsError, setPaymentsError] = useState<string | null>(null)
-  const [pendingPayments, setPendingPayments] =
-    useState<PendingPayments | null>(null)
+  const [pendingFile, setPendingFile] = useState<PendingFile | null>(null)
 
   async function currentBackup(id: string) {
     return buildBackup(await readLiveTables(db, id), new Date().toISOString())
@@ -127,6 +143,23 @@ export function Respaldo() {
     ])
     const live = (rows: { id: string; deleted_at: string | null }[]) =>
       new Set(rows.filter((r) => r.deleted_at === null).map((r) => r.id))
+    const format = fileFormat(text)
+    if (format === 'saria-excel') {
+      const result = parseExcelFile(text, {
+        accountIds: live(accounts),
+        categoryIds: live(categories),
+      })
+      if (!result.ok) {
+        setPaymentsError(result.error)
+        return
+      }
+      setPendingFile({
+        kind: 'excel',
+        file: result.file,
+        preview: excelPreview(result.file),
+      })
+      return
+    }
     const result = parseRecurringFile(
       text,
       { accountIds: live(accounts), categoryIds: live(categories) },
@@ -136,22 +169,24 @@ export function Respaldo() {
       setPaymentsError(result.error)
       return
     }
-    setPendingPayments({
+    setPendingFile({
+      kind: 'recurring',
       rows: result.rows,
       preview: `Se agregarán ${result.nuevos} pagos habituales (${result.existentes} ya existen y se actualizarán)`,
     })
   }
 
   async function confirmPayments() {
-    if (!pendingPayments) return
+    if (!pendingFile) return
     setBusy(true)
     try {
-      await addRecurringPayments(repo, pendingPayments.rows)
-      setPendingPayments(null)
-      toast.show({ message: 'Pagos habituales agregados' })
+      if (pendingFile.kind === 'excel') await applyExcelFile(pendingFile.file)
+      else await addRecurringPayments(repo, pendingFile.rows)
+      setPendingFile(null)
+      toast.show({ message: 'Datos agregados' })
     } catch {
-      setPendingPayments(null)
-      setPaymentsError('No se pudieron agregar los pagos habituales.')
+      setPendingFile(null)
+      setPaymentsError('No se pudieron agregar los datos. No se cambió nada.')
     } finally {
       setBusy(false)
     }
@@ -213,18 +248,16 @@ export function Respaldo() {
           )}
         </Card>
         <Card>
-          <p className="font-semibold">
-            Agregar pagos habituales desde archivo
-          </p>
+          <p className="font-semibold">Agregar desde archivo</p>
           <p className="mt-0.5 text-sm text-texto-suave">
-            Suma pagos habituales de un archivo sin borrar nada de lo que ya
-            tienes.
+            Suma pagos habituales o los datos del Excel de un archivo sin borrar
+            nada de lo que ya tienes.
           </p>
           <input
             ref={paymentsInput}
             type="file"
             accept="application/json,.json"
-            aria-label="Archivo de pagos habituales"
+            aria-label="Archivo para agregar"
             className="sr-only"
             tabIndex={-1}
             onChange={(e) => {
@@ -238,7 +271,7 @@ export function Respaldo() {
             className="mt-3 w-full"
             onClick={() => paymentsInput.current?.click()}
           >
-            Agregar pagos habituales desde archivo
+            Agregar desde archivo
           </Button>
           {paymentsError && (
             <p role="alert" className="mt-3 text-sm text-gasto">
@@ -275,21 +308,21 @@ export function Respaldo() {
       </Sheet>
 
       <Sheet
-        open={pendingPayments !== null}
+        open={pendingFile !== null}
         onClose={() => {
-          if (!busy) setPendingPayments(null)
+          if (!busy) setPendingFile(null)
         }}
-        title="¿Agregar pagos habituales?"
+        title="¿Agregar estos datos?"
       >
-        <p className="cifras">{pendingPayments?.preview}</p>
+        <p className="cifras">{pendingFile?.preview}</p>
         <div className="mt-6 flex flex-col gap-2">
           <Button variant="primaria" loading={busy} onClick={confirmPayments}>
-            Agregar pagos habituales
+            Agregar datos
           </Button>
           <Button
             variant="fantasma"
             disabled={busy}
-            onClick={() => setPendingPayments(null)}
+            onClick={() => setPendingFile(null)}
           >
             Cancelar
           </Button>
