@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useLocation } from 'react-router'
 import { useFinance, useToday } from '@/db/queries'
 import {
   formatDayLabel,
@@ -36,9 +37,15 @@ const KIND_LABEL: Record<EntryKind, string> = {
 export function Movimientos() {
   const finance = useFinance()
   const today = useToday()
+  // Desde Gráficas llegan mes y categoría como filtros iniciales.
+  const initial = (useLocation().state ?? null) as {
+    categoryId?: string | null
+    month?: string
+  } | null
   const [filters, setFilters] = useState<FeedFilters>({
     ...EMPTY_FILTERS,
-    month: monthKey(today),
+    month: initial?.month ?? monthKey(today),
+    categoryIds: initial?.categoryId ? [initial.categoryId] : [],
   })
   const [pages, setPages] = useState({ key: '', extra: 0 })
   const [filtersOpen, setFiltersOpen] = useState(false)
