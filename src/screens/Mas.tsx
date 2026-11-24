@@ -6,9 +6,15 @@ import { useSettings } from '@/db/queries'
 import { updateSettings } from '@/db/settings'
 import type { ThemePref } from '@/domain/theme'
 import { AmountInput } from '@/ui/AmountInput'
+import {
+  useSyncAvailable,
+  useSyncNow,
+  useSyncStatus,
+} from '@/sync/SyncProvider'
 import { Button } from '@/ui/Button'
 import { Card } from '@/ui/Card'
 import { Sheet } from '@/ui/Sheet'
+import { SyncPill } from '@/ui/SyncPill'
 import { TabScreen } from './TabScreen'
 
 const THEME_OPTIONS: { value: ThemePref; label: string }[] = [
@@ -127,7 +133,46 @@ function ThemePicker() {
   )
 }
 
+const timeFormat = new Intl.DateTimeFormat('es-MX', {
+  hour: 'numeric',
+  minute: '2-digit',
+  timeZone: 'America/Mexico_City',
+})
+
+function SyncCard() {
+  const status = useSyncStatus()
+  const syncNow = useSyncNow()
+
+  return (
+    <Card>
+      <div className="flex items-center justify-between gap-3">
+        <p className="font-semibold">Sincronización</p>
+        <SyncPill status={status} />
+      </div>
+      {status.lastSyncedAt && (
+        <p className="mt-2 text-sm text-texto-suave">
+          Última vez: {timeFormat.format(new Date(status.lastSyncedAt))}
+        </p>
+      )}
+      {status.state === 'error' && status.message && (
+        <p role="alert" className="mt-2 text-sm text-gasto">
+          {status.message}
+        </p>
+      )}
+      <Button
+        variant="secundaria"
+        className="mt-3 w-full"
+        loading={status.state === 'sincronizando'}
+        onClick={() => void syncNow()}
+      >
+        Sincronizar ahora
+      </Button>
+    </Card>
+  )
+}
+
 function SignOut() {
+  const status = useSyncStatus()
   const { signOut } = useSessionContext()
   const navigate = useNavigate()
   const [confirming, setConfirming] = useState(false)
@@ -164,6 +209,12 @@ function SignOut() {
         <p className="text-texto-suave">
           Para volver a entrar necesitarás tu correo y tu contraseña.
         </p>
+        {status.pending > 0 && (
+          <p className="mt-2 text-texto-suave">
+            Hay {status.pending} cambios sin sincronizar; se subirán la próxima
+            vez que inicies sesión en este dispositivo.
+          </p>
+        )}
         <div className="mt-6 flex flex-col gap-2">
           <Button variant="peligro" loading={leaving} onClick={confirm}>
             Cerrar sesión
@@ -183,6 +234,7 @@ function SignOut() {
 
 export function Mas() {
   const settings = useSettings()
+  const syncAvailable = useSyncAvailable()
   return (
     <TabScreen title="Más">
       <div className="flex flex-col gap-3">
@@ -202,6 +254,7 @@ export function Mas() {
           label="Respaldo"
           hint="Descarga tus datos o restaura un respaldo."
         />
+        {syncAvailable && <SyncCard />}
         <ThemePicker />
         <SignOut />
       </div>

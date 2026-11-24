@@ -24,6 +24,29 @@ export async function seedSession(page: Page) {
 export const test = base.extend({
   page: async ({ page }, provide) => {
     await page.route(`${SUPABASE_URL}/**`, (route) => route.abort())
+    // Datos: un servidor vacío que acepta todo, para que la primera sincronización
+    // termine y la app siembre las categorías. Se registra después, así que gana.
+    await page.route(`${SUPABASE_URL}/rest/v1/**`, (route) => {
+      const headers = { 'access-control-allow-origin': '*' }
+      const method = route.request().method()
+      if (method === 'OPTIONS')
+        return route.fulfill({
+          status: 204,
+          headers: {
+            ...headers,
+            'access-control-allow-headers': '*',
+            'access-control-allow-methods': '*',
+          },
+        })
+      if (method === 'GET')
+        return route.fulfill({
+          status: 200,
+          headers,
+          contentType: 'application/json',
+          body: '[]',
+        })
+      return route.fulfill({ status: 201, headers, body: '' })
+    })
     await provide(page)
   },
 })

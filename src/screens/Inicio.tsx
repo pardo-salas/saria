@@ -12,9 +12,11 @@ import type { FeedEntry } from '@/domain/feed'
 import { formatCents } from '@/domain/money'
 import { TransactionSheet } from '@/features/forms/TransactionSheet'
 import { TransferSheet } from '@/features/forms/TransferSheet'
+import { useSyncAvailable, useSyncStatus } from '@/sync/SyncProvider'
 import { EmptyState } from '@/ui/EmptyState'
 import { FeedRow } from '@/ui/FeedRow'
 import { List } from '@/ui/List'
+import { SyncPill } from '@/ui/SyncPill'
 import { WaterLevelCard } from '@/ui/WaterLevelCard'
 
 const monthFormat = new Intl.DateTimeFormat('es-MX', {
@@ -51,6 +53,8 @@ export function Inicio() {
   const finance = useFinance()
   const settings = useSettings()
   const today = useToday()
+  const syncStatus = useSyncStatus()
+  const syncAvailable = useSyncAvailable()
   const [editing, setEditing] = useState<FeedEntry | null>(null)
 
   let level: WaterLevel | null = null
@@ -70,9 +74,12 @@ export function Inicio() {
 
   return (
     <>
-      <header className="mb-4">
-        <p className="text-etiqueta text-texto-suave">{currentMonth()}</p>
-        <h1 className="text-titulo">Hola, Brian</h1>
+      <header className="mb-4 flex items-start justify-between gap-3">
+        <div>
+          <p className="text-etiqueta text-texto-suave">{currentMonth()}</p>
+          <h1 className="text-titulo">Hola, Brian</h1>
+        </div>
+        {syncAvailable && <SyncPill status={syncStatus} />}
       </header>
 
       <WaterLevelCard level={level} />

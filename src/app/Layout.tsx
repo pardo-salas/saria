@@ -1,8 +1,5 @@
-import { useEffect } from 'react'
 import { Outlet } from 'react-router'
-import { db } from '@/db/dexie'
-import { repo } from '@/db/repo'
-import { ensureCategoriesSeeded } from '@/db/seed'
+import { SyncProvider } from '@/sync/SyncProvider'
 import { BottomNav, type NavItem } from '@/ui/BottomNav'
 import { Fab } from '@/ui/Fab'
 import {
@@ -13,7 +10,6 @@ import {
   IconMovimientos,
 } from '@/ui/icons'
 import { QuickAddProvider, useQuickAdd } from './QuickAddContext'
-import { useSessionContext } from './SessionProvider'
 
 const NAV_ITEMS: NavItem[] = [
   { to: '/', label: 'Inicio', icon: <IconInicio /> },
@@ -30,22 +26,16 @@ const NAV_ITEMS: NavItem[] = [
  */
 export function Layout() {
   return (
-    <QuickAddProvider>
-      <LayoutFrame />
-    </QuickAddProvider>
+    <SyncProvider>
+      <QuickAddProvider>
+        <LayoutFrame />
+      </QuickAddProvider>
+    </SyncProvider>
   )
 }
 
 function LayoutFrame() {
   const quickAdd = useQuickAdd()
-  const { userId } = useSessionContext()
-
-  useEffect(() => {
-    if (userId === null) return
-    ensureCategoriesSeeded(db, repo, userId).catch(() => {
-      // Si falla la siembra no se avisa: se reintenta la próxima vez que se abra la app.
-    })
-  }, [userId])
 
   return (
     <>
