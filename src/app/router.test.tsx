@@ -110,7 +110,7 @@ describe.each([
   it('muestra el título y un estado vacío que dice qué llegará', async () => {
     renderAt(path, 'signed-in')
     expect(
-      screen.getByRole('heading', { level: 1, name: title }),
+      await screen.findByRole('heading', { level: 1, name: title }),
     ).toBeInTheDocument()
     await waitFor(() =>
       expect(screen.getByRole('main')).toHaveTextContent(empty),

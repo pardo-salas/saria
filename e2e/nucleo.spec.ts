@@ -12,9 +12,7 @@ async function crearCuenta(
   await page.getByRole('button', { name: 'Nueva cuenta' }).first().click()
   const sheet = page.getByRole('dialog')
   await sheet.getByLabel('Nombre').fill(name)
-  await sheet
-    .getByText(tipo, { exact: true })
-    .click()
+  await sheet.getByText(tipo, { exact: true }).click()
   await sheet.getByRole('textbox', { name: 'Saldo inicial' }).fill(saldo)
   await sheet.getByRole('button', { name: 'Guardar', exact: true }).click()
   await expect(sheet).toBeHidden()
@@ -76,8 +74,14 @@ test('una transferencia mueve ambos saldos', async ({ page }) => {
     .getByText('Transferir', { exact: true })
     .click()
   await sheet.getByRole('textbox', { name: 'Monto' }).fill('300')
-  await sheet.getByRole('radiogroup', { name: 'De' }).getByText('Origen').click()
-  await sheet.getByRole('radiogroup', { name: 'A' }).getByText('Destino').click()
+  await sheet
+    .getByRole('radiogroup', { name: 'De' })
+    .getByText('Origen')
+    .click()
+  await sheet
+    .getByRole('radiogroup', { name: 'A' })
+    .getByText('Destino')
+    .click()
   await sheet.getByRole('button', { name: 'Transferir', exact: true }).click()
   await expect(sheet).toBeHidden()
 

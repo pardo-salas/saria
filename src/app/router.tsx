@@ -2,19 +2,33 @@ import { lazy, Suspense } from 'react'
 import { Navigate, Route, Routes } from 'react-router'
 import { AUTH_ERROR_MESSAGES } from '@/auth/authService'
 import { AuthScreen } from '@/screens/AuthScreen'
-import { Categorias } from '@/screens/Categorias'
-import { CuentaDetalle } from '@/screens/CuentaDetalle'
 import { Cuentas } from '@/screens/Cuentas'
-import { CuentasArchivadas } from '@/screens/CuentasArchivadas'
 import { Graficas } from '@/screens/Graficas'
 import { IniciarSesion } from '@/screens/IniciarSesion'
 import { Inicio } from '@/screens/Inicio'
 import { Mas } from '@/screens/Mas'
-import { Movimientos } from '@/screens/Movimientos'
-import { Respaldo } from '@/screens/Respaldo'
 import { Restablecer } from '@/screens/Restablecer'
 import { Layout } from './Layout'
 import { useSessionContext } from './SessionProvider'
+
+// Pantallas secundarias: salen del bundle inicial (siguen en el precache).
+const Categorias = lazy(() =>
+  import('@/screens/Categorias').then((m) => ({ default: m.Categorias })),
+)
+const CuentaDetalle = lazy(() =>
+  import('@/screens/CuentaDetalle').then((m) => ({ default: m.CuentaDetalle })),
+)
+const CuentasArchivadas = lazy(() =>
+  import('@/screens/CuentasArchivadas').then((m) => ({
+    default: m.CuentasArchivadas,
+  })),
+)
+const Movimientos = lazy(() =>
+  import('@/screens/Movimientos').then((m) => ({ default: m.Movimientos })),
+)
+const Respaldo = lazy(() =>
+  import('@/screens/Respaldo').then((m) => ({ default: m.Respaldo })),
+)
 
 // Solo existe en desarrollo: en el build de producción la rama se elimina y
 // el módulo no se incluye.
@@ -56,31 +70,33 @@ export function AppRoutes() {
   if (gate === 'misconfigured') return <Misconfigured />
 
   return (
-    <Routes>
-      <Route element={<RequireSession />}>
-        <Route index element={<Inicio />} />
-        <Route path="movimientos" element={<Movimientos />} />
-        <Route path="cuentas" element={<Cuentas />} />
-        <Route path="cuentas/archivadas" element={<CuentasArchivadas />} />
-        <Route path="cuentas/:id" element={<CuentaDetalle />} />
-        <Route path="graficas" element={<Graficas />} />
-        <Route path="mas" element={<Mas />} />
-        <Route path="mas/categorias" element={<Categorias />} />
-        <Route path="mas/respaldo" element={<Respaldo />} />
-      </Route>
-      <Route path="iniciar-sesion" element={<SignedOutOnly />} />
-      <Route path="restablecer" element={<Restablecer />} />
-      {Componentes && (
-        <Route
-          path="componentes"
-          element={
-            <Suspense fallback={null}>
-              <Componentes />
-            </Suspense>
-          }
-        />
-      )}
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+    <Suspense fallback={null}>
+      <Routes>
+        <Route element={<RequireSession />}>
+          <Route index element={<Inicio />} />
+          <Route path="movimientos" element={<Movimientos />} />
+          <Route path="cuentas" element={<Cuentas />} />
+          <Route path="cuentas/archivadas" element={<CuentasArchivadas />} />
+          <Route path="cuentas/:id" element={<CuentaDetalle />} />
+          <Route path="graficas" element={<Graficas />} />
+          <Route path="mas" element={<Mas />} />
+          <Route path="mas/categorias" element={<Categorias />} />
+          <Route path="mas/respaldo" element={<Respaldo />} />
+        </Route>
+        <Route path="iniciar-sesion" element={<SignedOutOnly />} />
+        <Route path="restablecer" element={<Restablecer />} />
+        {Componentes && (
+          <Route
+            path="componentes"
+            element={
+              <Suspense fallback={null}>
+                <Componentes />
+              </Suspense>
+            }
+          />
+        )}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </Suspense>
   )
 }

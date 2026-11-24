@@ -41,7 +41,11 @@ test('abre sin conexión tras la primera visita', async ({ page, context }) => {
 
   await context.setOffline(true)
   await page.goto('/cuentas')
-  await expect(page.getByRole('heading', { name: 'Cuentas', exact: true })).toBeVisible()
+  await expect(
+    page.getByRole('heading', { name: 'Cuentas', exact: true }),
+  ).toBeVisible()
   await page.reload()
-  await expect(page.getByRole('heading', { name: 'Cuentas', exact: true })).toBeVisible()
+  await expect(
+    page.getByRole('heading', { name: 'Cuentas', exact: true }),
+  ).toBeVisible()
 })
