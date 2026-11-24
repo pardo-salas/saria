@@ -262,7 +262,7 @@ function iso(texto, respaldo) {
   return Number.isNaN(d.getTime()) ? respaldo : d.toISOString()
 }
 
-function extraerDb(ruta, carpeta) {
+export function extraerDb(ruta, carpeta) {
   const buf = readFileSync(ruta)
   let i = 0
   while (

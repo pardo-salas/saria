@@ -7,6 +7,7 @@ import { db } from '@/db/dexie'
 import { readLiveTables, restoreBackup } from '@/db/backup'
 import { useToday } from '@/db/queries'
 import { repo } from '@/db/repo'
+import { addRecurringPayments } from '@/db/recurringFile'
 import {
   backupFileName,
   buildBackup,
@@ -14,6 +15,7 @@ import {
   type Backup,
 } from '@/domain/backup'
 import { TIME_ZONE } from '@/domain/dates'
+import { parseRecurringFile, type RecurringRow } from '@/domain/recurringFile'
 import { Button } from '@/ui/Button'
 import { Card } from '@/ui/Card'
 import { Sheet } from '@/ui/Sheet'
@@ -22,6 +24,11 @@ import { TabScreen } from './TabScreen'
 
 interface Pending {
   backup: Backup
+  preview: string
+}
+
+interface PendingPayments {
+  rows: RecurringRow[]
   preview: string
 }
 
@@ -43,6 +50,10 @@ export function Respaldo() {
   const [error, setError] = useState<string | null>(null)
   const [pending, setPending] = useState<Pending | null>(null)
   const [busy, setBusy] = useState(false)
+  const paymentsInput = useRef<HTMLInputElement>(null)
+  const [paymentsError, setPaymentsError] = useState<string | null>(null)
+  const [pendingPayments, setPendingPayments] =
+    useState<PendingPayments | null>(null)
 
   async function currentBackup(id: string) {
     return buildBackup(await readLiveTables(db, id), new Date().toISOString())
@@ -94,6 +105,53 @@ export function Respaldo() {
     } catch {
       setPending(null)
       setError('No se pudo restaurar el respaldo. No se cambió nada.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function pickPayments(file: File | undefined) {
+    if (!file) return
+    setPaymentsError(null)
+    let text: string
+    try {
+      text = await file.text()
+    } catch {
+      setPaymentsError('No se pudo leer el archivo')
+      return
+    }
+    const [accounts, categories, payments] = await Promise.all([
+      db.accounts.toArray(),
+      db.categories.toArray(),
+      db.recurring_payments.toArray(),
+    ])
+    const live = (rows: { id: string; deleted_at: string | null }[]) =>
+      new Set(rows.filter((r) => r.deleted_at === null).map((r) => r.id))
+    const result = parseRecurringFile(
+      text,
+      { accountIds: live(accounts), categoryIds: live(categories) },
+      new Set(payments.map((p) => p.id)),
+    )
+    if (!result.ok) {
+      setPaymentsError(result.error)
+      return
+    }
+    setPendingPayments({
+      rows: result.rows,
+      preview: `Se agregarán ${result.nuevos} pagos habituales (${result.existentes} ya existen y se actualizarán)`,
+    })
+  }
+
+  async function confirmPayments() {
+    if (!pendingPayments) return
+    setBusy(true)
+    try {
+      await addRecurringPayments(repo, pendingPayments.rows)
+      setPendingPayments(null)
+      toast.show({ message: 'Pagos habituales agregados' })
+    } catch {
+      setPendingPayments(null)
+      setPaymentsError('No se pudieron agregar los pagos habituales.')
     } finally {
       setBusy(false)
     }
@@ -154,6 +212,40 @@ export function Respaldo() {
             </p>
           )}
         </Card>
+        <Card>
+          <p className="font-semibold">
+            Agregar pagos habituales desde archivo
+          </p>
+          <p className="mt-0.5 text-sm text-texto-suave">
+            Suma pagos habituales de un archivo sin borrar nada de lo que ya
+            tienes.
+          </p>
+          <input
+            ref={paymentsInput}
+            type="file"
+            accept="application/json,.json"
+            aria-label="Archivo de pagos habituales"
+            className="sr-only"
+            tabIndex={-1}
+            onChange={(e) => {
+              const input = e.target
+              void pickPayments(input.files?.[0])
+              input.value = ''
+            }}
+          />
+          <Button
+            variant="secundaria"
+            className="mt-3 w-full"
+            onClick={() => paymentsInput.current?.click()}
+          >
+            Agregar pagos habituales desde archivo
+          </Button>
+          {paymentsError && (
+            <p role="alert" className="mt-3 text-sm text-gasto">
+              {paymentsError}
+            </p>
+          )}
+        </Card>
       </div>
 
       <Sheet
@@ -176,6 +268,28 @@ export function Respaldo() {
             variant="fantasma"
             disabled={busy}
             onClick={() => setPending(null)}
+          >
+            Cancelar
+          </Button>
+        </div>
+      </Sheet>
+
+      <Sheet
+        open={pendingPayments !== null}
+        onClose={() => {
+          if (!busy) setPendingPayments(null)
+        }}
+        title="¿Agregar pagos habituales?"
+      >
+        <p className="cifras">{pendingPayments?.preview}</p>
+        <div className="mt-6 flex flex-col gap-2">
+          <Button variant="primaria" loading={busy} onClick={confirmPayments}>
+            Agregar pagos habituales
+          </Button>
+          <Button
+            variant="fantasma"
+            disabled={busy}
+            onClick={() => setPendingPayments(null)}
           >
             Cancelar
           </Button>
