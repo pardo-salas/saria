@@ -26,7 +26,7 @@ function ymd(y: number, m: number, d: number): string {
 }
 
 /** Fecha con día `d` en el mes `m`; si el mes es más corto cae en su último día. */
-function clamped(y: number, m: number, d: number): string {
+export function clamped(y: number, m: number, d: number): string {
   return ymd(y, m, Math.min(d, daysInMonth(y, m)))
 }
 

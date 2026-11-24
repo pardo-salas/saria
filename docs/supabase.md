@@ -19,6 +19,15 @@ Tu URL de producción de Vercel aparece abajo como `https://<tu-app>.vercel.app`
 
 Alternativa con la CLI: `supabase link` y luego `supabase db push`.
 
+### Aplicar 0002 (Fase 4)
+
+Antes de publicar la Fase 4, aplica la segunda migración (agrega la categoría a las compras a meses):
+
+1. En **SQL Editor**, crea una consulta nueva.
+2. Copia todo el contenido de `supabase/migrations/0002_installment_category.sql` y pégalo.
+3. Presiona **Run**. Debe terminar sin errores.
+4. En **Table Editor**, `installment_plans` debe mostrar la columna `category_id`.
+
 ## 3. Desactivar el registro de usuarios
 
 1. Ve a **Authentication → Providers → Email**.

@@ -123,6 +123,7 @@ export interface InstallmentPlan extends SyncedRow {
   monthly_cents: number
   paid_months: number
   active: boolean
+  category_id: string | null
 }
 
 /** Una fila por usuario; el repo fuerza `id === user_id`. */
@@ -248,6 +249,7 @@ const columnMaps: { [T in SyncedTableName]: ColumnMap<RowOf<T>> } = {
     monthly_cents: true,
     paid_months: true,
     active: true,
+    category_id: true,
   },
   settings: {
     ...common,

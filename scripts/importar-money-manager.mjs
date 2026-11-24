@@ -140,6 +140,7 @@ export const COLUMNS = {
     'monthly_cents',
     'paid_months',
     'active',
+    'category_id',
   ],
   settings: [
     'id',
