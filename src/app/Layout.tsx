@@ -1,10 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { Outlet } from 'react-router'
 import { db } from '@/db/dexie'
 import { repo } from '@/db/repo'
 import { ensureCategoriesSeeded } from '@/db/seed'
 import { BottomNav, type NavItem } from '@/ui/BottomNav'
-import { Button } from '@/ui/Button'
 import { Fab } from '@/ui/Fab'
 import {
   IconCuentas,
@@ -13,7 +12,7 @@ import {
   IconMas,
   IconMovimientos,
 } from '@/ui/icons'
-import { Sheet } from '@/ui/Sheet'
+import { QuickAddProvider, useQuickAdd } from './QuickAddContext'
 import { useSessionContext } from './SessionProvider'
 
 const NAV_ITEMS: NavItem[] = [
@@ -30,7 +29,15 @@ const NAV_ITEMS: NavItem[] = [
  * (el Fab se alinea a ese ancho, ver src/ui/Fab.tsx).
  */
 export function Layout() {
-  const [addOpen, setAddOpen] = useState(false)
+  return (
+    <QuickAddProvider>
+      <LayoutFrame />
+    </QuickAddProvider>
+  )
+}
+
+function LayoutFrame() {
+  const quickAdd = useQuickAdd()
   const { userId } = useSessionContext()
 
   useEffect(() => {
@@ -48,25 +55,13 @@ export function Layout() {
         </main>
       </div>
 
-      <Fab label="Registrar gasto" onClick={() => setAddOpen(true)} />
+      <Fab
+        label="Registrar"
+        onClick={() =>
+          quickAdd.open({ accountId: quickAdd.contextAccount ?? undefined })
+        }
+      />
       <BottomNav items={NAV_ITEMS} />
-
-      <Sheet
-        open={addOpen}
-        onClose={() => setAddOpen(false)}
-        title="Registrar gasto"
-      >
-        <p className="text-texto-suave">
-          Muy pronto podrás anotar tus gastos aquí en dos toques.
-        </p>
-        <Button
-          variant="secundaria"
-          className="mt-6 w-full"
-          onClick={() => setAddOpen(false)}
-        >
-          Entendido
-        </Button>
-      </Sheet>
     </>
   )
 }
