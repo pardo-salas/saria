@@ -71,26 +71,30 @@ export function Movimientos() {
       month: f.month,
     }))
 
-  const chips: { label: string; remove(): void }[] = []
+  const chips: { key: string; label: string; remove(): void }[] = []
   for (const k of filters.kinds)
     chips.push({
+      key: `kind-${k}`,
       label: KIND_LABEL[k],
       remove: () => patch({ kinds: filters.kinds.filter((x) => x !== k) }),
     })
   for (const id of filters.accountIds)
     chips.push({
+      key: `account-${id}`,
       label: finance?.lookups.accounts.get(id)?.name ?? 'Cuenta',
       remove: () =>
         patch({ accountIds: filters.accountIds.filter((x) => x !== id) }),
     })
   for (const id of filters.categoryIds)
     chips.push({
+      key: `category-${id}`,
       label: finance?.lookups.categories.get(id)?.name ?? 'Categoría',
       remove: () =>
         patch({ categoryIds: filters.categoryIds.filter((x) => x !== id) }),
     })
   if (effective.range)
     chips.push({
+      key: 'range',
       label: `${effective.range.from} a ${effective.range.to}`,
       remove: () => patch({ range: null }),
     })
@@ -165,7 +169,7 @@ export function Movimientos() {
       {chips.length > 0 && (
         <div className="mt-3 flex flex-wrap gap-2">
           {chips.map((c) => (
-            <Chip key={c.label} label={c.label} selected onRemove={c.remove} />
+            <Chip key={c.key} label={c.label} selected onRemove={c.remove} />
           ))}
         </div>
       )}

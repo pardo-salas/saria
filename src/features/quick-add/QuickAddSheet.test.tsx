@@ -27,6 +27,11 @@ function renderSheet(onClose = () => {}) {
 }
 
 describe('QuickAddSheet', () => {
+  it('al abrir, el foco queda en el monto', () => {
+    renderSheet()
+    expect(screen.getByLabelText('Monto')).toHaveFocus()
+  })
+
   it('escribir el monto y tocar Comida guarda el gasto y permite deshacer', async () => {
     const user = userEvent.setup()
     renderSheet()

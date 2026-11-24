@@ -44,7 +44,7 @@ test('registra un gasto sin conexión en dos toques', async ({
   await expect(page.getByText('$1,000.00').first()).toBeVisible()
 
   await page.getByRole('button', { name: 'Registrar', exact: true }).click()
-  await page.getByRole('textbox', { name: 'Monto' }).fill('185.50')
+  await page.keyboard.type('185.50')
   await page
     .getByRole('button', { name: /^Guardar gasto de \$185\.50 en Comida/ })
     .click()

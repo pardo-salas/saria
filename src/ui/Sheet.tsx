@@ -33,7 +33,9 @@ export function Sheet({ open, onClose, title, children }: SheetProps) {
       document.activeElement instanceof HTMLElement
         ? document.activeElement
         : null
-    panelRef.current?.focus()
+    // Si un hijo ya tomó el foco (autoFocus), se respeta.
+    if (!panelRef.current?.contains(document.activeElement))
+      panelRef.current?.focus()
 
     const { overflow } = document.body.style
     document.body.style.overflow = 'hidden'

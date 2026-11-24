@@ -23,7 +23,7 @@ function IncomeCard({ initialCents }: { initialCents: number | null }) {
   const [failed, setFailed] = useState(false)
 
   function save() {
-    if (!valid) return
+    if (!valid || cents === initialCents) return
     setFailed(false)
     updateSettings({ monthly_income_cents: cents }).catch(() => setFailed(true))
   }
