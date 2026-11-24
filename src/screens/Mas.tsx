@@ -2,7 +2,8 @@ import { useId, useState } from 'react'
 import { Link, useNavigate } from 'react-router'
 import { useSessionContext } from '@/app/SessionProvider'
 import { useTheme } from '@/app/ThemeProvider'
-import { useSettings } from '@/db/queries'
+import { useLiveRows, useSettings } from '@/db/queries'
+import { DAILY_REMINDER_TITLE, saveDailyReminder } from '@/db/reminders'
 import { updateSettings } from '@/db/settings'
 import type { ThemePref } from '@/domain/theme'
 import { AmountInput } from '@/ui/AmountInput'
@@ -51,6 +52,59 @@ function IncomeCard({ initialCents }: { initialCents: number | null }) {
       {failed && (
         <p role="alert" className="mt-2 text-sm text-gasto">
           No se pudo guardar el sueldo. Intenta de nuevo.
+        </p>
+      )}
+    </Card>
+  )
+}
+
+function ReminderCard() {
+  const reminders = useLiveRows('reminders')
+  const reminder = reminders?.find(
+    (r) => r.title === DAILY_REMINDER_TITLE && r.frequency === 'daily',
+  )
+  const [failed, setFailed] = useState(false)
+  if (!reminder) return null
+
+  function save(changes: { enabled?: boolean; time?: string }) {
+    setFailed(false)
+    saveDailyReminder(reminder!, changes).catch(() => setFailed(true))
+  }
+
+  return (
+    <Card>
+      <label className="flex min-h-11 cursor-pointer items-center justify-between gap-3">
+        <span className="font-semibold">Recordatorio diario</span>
+        <input
+          type="checkbox"
+          checked={reminder.enabled}
+          onChange={(e) => save({ enabled: e.target.checked })}
+          className="size-6 accent-cobalto"
+        />
+      </label>
+      <p className="mt-0.5 text-sm text-texto-suave">
+        Te avisamos en Inicio si a esa hora aún no registras nada del día.
+      </p>
+      {reminder.enabled && (
+        <div className="mt-3">
+          <label
+            htmlFor="hora-recordatorio"
+            className="text-etiqueta text-texto-suave"
+          >
+            Hora
+          </label>
+          <input
+            id="hora-recordatorio"
+            type="time"
+            value={reminder.time ?? '20:00'}
+            onChange={(e) => e.target.value && save({ time: e.target.value })}
+            className="mt-1.5 block min-h-12 w-full rounded-boton bg-superficie-2 px-4 text-base text-texto cifras"
+          />
+        </div>
+      )}
+      {failed && (
+        <p role="alert" className="mt-2 text-sm text-gasto">
+          No se pudo guardar el recordatorio. Intenta de nuevo.
         </p>
       )}
     </Card>
@@ -249,6 +303,12 @@ export function Mas() {
           label="Categorías"
           hint="Crea, edita y ponles un límite mensual."
         />
+        <NavRow
+          to="/mas/pagos"
+          label="Pagos habituales"
+          hint="Rentas, suscripciones y mensualidades."
+        />
+        <ReminderCard />
         <NavRow
           to="/mas/respaldo"
           label="Respaldo"

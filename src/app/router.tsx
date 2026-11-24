@@ -26,6 +26,11 @@ const CuentasArchivadas = lazy(() =>
 const Movimientos = lazy(() =>
   import('@/screens/Movimientos').then((m) => ({ default: m.Movimientos })),
 )
+const PagosHabituales = lazy(() =>
+  import('@/screens/PagosHabituales').then((m) => ({
+    default: m.PagosHabituales,
+  })),
+)
 const Respaldo = lazy(() =>
   import('@/screens/Respaldo').then((m) => ({ default: m.Respaldo })),
 )
@@ -81,6 +86,7 @@ export function AppRoutes() {
           <Route path="graficas" element={<Graficas />} />
           <Route path="mas" element={<Mas />} />
           <Route path="mas/categorias" element={<Categorias />} />
+          <Route path="mas/pagos" element={<PagosHabituales />} />
           <Route path="mas/respaldo" element={<Respaldo />} />
         </Route>
         <Route path="iniciar-sesion" element={<SignedOutOnly />} />

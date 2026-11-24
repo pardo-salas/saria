@@ -10,6 +10,8 @@ import {
 import { daysLeftInMonth } from '@/domain/dates'
 import type { FeedEntry } from '@/domain/feed'
 import { formatCents } from '@/domain/money'
+import { DailyReminderBanner } from '@/features/recurring/DailyReminderBanner'
+import { DueCard } from '@/features/recurring/DueCard'
 import { TransactionSheet } from '@/features/forms/TransactionSheet'
 import { TransferSheet } from '@/features/forms/TransferSheet'
 import { useSyncAvailable, useSyncStatus } from '@/sync/SyncProvider'
@@ -82,6 +84,8 @@ export function Inicio() {
         {syncAvailable && <SyncPill status={syncStatus} />}
       </header>
 
+      <DailyReminderBanner />
+
       <WaterLevelCard level={level} />
 
       {flows && total !== null && (
@@ -101,6 +105,8 @@ export function Inicio() {
           </div>
         </div>
       )}
+
+      <DueCard />
 
       <section aria-labelledby="hoy" className="mt-6">
         <div className="flex items-baseline justify-between">
