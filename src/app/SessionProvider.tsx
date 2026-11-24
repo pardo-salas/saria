@@ -41,10 +41,13 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const { gate, userId, markSignedOut } = useSession()
 
   const signOut = useCallback(async () => {
-    await authSignOut()
-    // authSignOut borra la sesión guardada pase lo que pase; la puerta se
-    // cierra aunque supabase-js no emita SIGNED_OUT (p. ej. sin red).
-    markSignedOut()
+    try {
+      await authSignOut()
+    } finally {
+      // La puerta se cierra aunque authSignOut falle o supabase-js no emita
+      // SIGNED_OUT (p. ej. sin red).
+      markSignedOut()
+    }
   }, [markSignedOut])
 
   const value = useMemo(

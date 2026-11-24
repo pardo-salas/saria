@@ -138,6 +138,21 @@ describe('Más: cerrar sesión', () => {
   })
 })
 
+describe('Más: sueldo mensual', () => {
+  it('capturar 18,600 y salir del campo guarda 1860000 centavos', async () => {
+    const user = userEvent.setup()
+    renderMas('u1')
+    const input = await screen.findByLabelText('Sueldo mensual')
+    await user.type(input, '18,600')
+    await user.tab()
+    await vi.waitFor(async () =>
+      expect(await db.settings.get('u1')).toMatchObject({
+        monthly_income_cents: 1860000,
+      }),
+    )
+  })
+})
+
 describe('Más: versión', () => {
   it('muestra la versión de la app', () => {
     renderMas('u1')

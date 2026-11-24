@@ -1,9 +1,11 @@
 import { useId, useState } from 'react'
-import { useNavigate } from 'react-router'
+import { Link, useNavigate } from 'react-router'
 import { useSessionContext } from '@/app/SessionProvider'
 import { useTheme } from '@/app/ThemeProvider'
+import { useSettings } from '@/db/queries'
 import { updateSettings } from '@/db/settings'
 import type { ThemePref } from '@/domain/theme'
+import { AmountInput } from '@/ui/AmountInput'
 import { Button } from '@/ui/Button'
 import { Card } from '@/ui/Card'
 import { Sheet } from '@/ui/Sheet'
@@ -14,6 +16,65 @@ const THEME_OPTIONS: { value: ThemePref; label: string }[] = [
   { value: 'light', label: 'Claro' },
   { value: 'dark', label: 'Oscuro' },
 ]
+
+function IncomeCard({ initialCents }: { initialCents: number | null }) {
+  const [cents, setCents] = useState(initialCents)
+  const [valid, setValid] = useState(true)
+  const [failed, setFailed] = useState(false)
+
+  function save() {
+    if (!valid) return
+    setFailed(false)
+    updateSettings({ monthly_income_cents: cents }).catch(() => setFailed(true))
+  }
+
+  return (
+    <Card>
+      <div onBlur={save}>
+        <AmountInput
+          label="Sueldo mensual"
+          valueCents={cents}
+          onChange={setCents}
+          onValidityChange={setValid}
+        />
+      </div>
+      <p className="mt-2 text-sm text-texto-suave">
+        Con él calculamos cuánto te queda en el mes. Déjalo vacío si no tienes
+        un sueldo fijo.
+      </p>
+      {failed && (
+        <p role="alert" className="mt-2 text-sm text-gasto">
+          No se pudo guardar el sueldo. Intenta de nuevo.
+        </p>
+      )}
+    </Card>
+  )
+}
+
+function NavRow({
+  to,
+  label,
+  hint,
+}: {
+  to: string
+  label: string
+  hint: string
+}) {
+  return (
+    <Link
+      to={to}
+      className="flex min-h-14 items-center gap-3 rounded-tarjeta bg-superficie px-5 py-3 transition-colors duration-150 hover:bg-superficie-2/60 active:bg-superficie-2"
+    >
+      <span className="min-w-0 flex-1">
+        <span className="block font-semibold">{label}</span>
+        <span className="block text-sm text-texto-suave">{hint}</span>
+      </span>
+      <span aria-hidden="true" className="text-xl text-texto-suave">
+        ›
+      </span>
+    </Link>
+  )
+}
 
 function ThemePicker() {
   const { pref, setPref } = useTheme()
@@ -85,7 +146,7 @@ function SignOut() {
     <Card>
       <p className="font-semibold">Sesión</p>
       <p className="mt-0.5 text-sm text-texto-suave">
-        Tus datos se quedan en este dispositivo.
+        Cerrar sesión no borra tus datos de este dispositivo.
       </p>
       <Button
         variant="secundaria"
@@ -121,9 +182,26 @@ function SignOut() {
 }
 
 export function Mas() {
+  const settings = useSettings()
   return (
     <TabScreen title="Más">
       <div className="flex flex-col gap-3">
+        {settings !== undefined && (
+          <IncomeCard
+            key={settings?.updated_at ?? 'none'}
+            initialCents={settings?.monthly_income_cents ?? null}
+          />
+        )}
+        <NavRow
+          to="/mas/categorias"
+          label="Categorías"
+          hint="Crea, edita y ponles un límite mensual."
+        />
+        <NavRow
+          to="/mas/respaldo"
+          label="Respaldo"
+          hint="Descarga tus datos o restaura un respaldo."
+        />
         <ThemePicker />
         <SignOut />
       </div>

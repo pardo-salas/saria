@@ -2,6 +2,7 @@ import { lazy, Suspense } from 'react'
 import { Navigate, Route, Routes } from 'react-router'
 import { AUTH_ERROR_MESSAGES } from '@/auth/authService'
 import { AuthScreen } from '@/screens/AuthScreen'
+import { Categorias } from '@/screens/Categorias'
 import { CuentaDetalle } from '@/screens/CuentaDetalle'
 import { Cuentas } from '@/screens/Cuentas'
 import { CuentasArchivadas } from '@/screens/CuentasArchivadas'
@@ -10,6 +11,7 @@ import { IniciarSesion } from '@/screens/IniciarSesion'
 import { Inicio } from '@/screens/Inicio'
 import { Mas } from '@/screens/Mas'
 import { Movimientos } from '@/screens/Movimientos'
+import { Respaldo } from '@/screens/Respaldo'
 import { Restablecer } from '@/screens/Restablecer'
 import { Layout } from './Layout'
 import { useSessionContext } from './SessionProvider'
@@ -63,6 +65,8 @@ export function AppRoutes() {
         <Route path="cuentas/:id" element={<CuentaDetalle />} />
         <Route path="graficas" element={<Graficas />} />
         <Route path="mas" element={<Mas />} />
+        <Route path="mas/categorias" element={<Categorias />} />
+        <Route path="mas/respaldo" element={<Respaldo />} />
       </Route>
       <Route path="iniciar-sesion" element={<SignedOutOnly />} />
       <Route path="restablecer" element={<Restablecer />} />
