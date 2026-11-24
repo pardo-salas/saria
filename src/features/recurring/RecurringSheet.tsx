@@ -83,7 +83,9 @@ function RecurringForm({
   const [day, setDay] = useState(String(payment?.day_of_month ?? ''))
   const [day2, setDay2] = useState(String(payment?.second_day_of_month ?? ''))
   const [interval, setInterval] = useState(String(payment?.interval_days ?? ''))
-  const [start, setStart] = useState(payment?.start_date ?? today)
+  const [start, setStart] = useState(
+    payment ? (payment.start_date ?? '') : today,
+  )
   const [end, setEnd] = useState(payment?.end_date ?? '')
   const [autoCreate, setAutoCreate] = useState(payment?.auto_create ?? false)
   const [active, setActive] = useState(payment?.active ?? true)
@@ -133,9 +135,11 @@ function RecurringForm({
       frequency === 'custom' ? parseInt1(interval, 1, 3650) : null
     if (frequency === 'custom' && intervalN === null)
       next.interval = 'Escribe cada cuántos días (1 o más)'
-    if (!isValidDate(start)) next.start = 'Elige una fecha de inicio válida'
+    const startNeeded = !['daily', 'monthly', 'semimonthly'].includes(frequency)
+    if (start === '' ? startNeeded : !isValidDate(start))
+      next.start = 'Elige una fecha de inicio válida'
     if (end !== '' && !isValidDate(end)) next.end = 'Elige una fecha válida'
-    else if (end !== '' && isValidDate(start) && end < start)
+    else if (end !== '' && start !== '' && isValidDate(start) && end < start)
       next.end = 'La fecha de fin no puede ser antes del inicio'
     setErrors(next)
     if (Object.keys(next).length > 0) return
@@ -150,7 +154,7 @@ function RecurringForm({
       day_of_month: needsDay ? dayN : null,
       second_day_of_month: frequency === 'semimonthly' ? day2N : null,
       interval_days: frequency === 'custom' ? intervalN : null,
-      start_date: start,
+      start_date: start === '' ? null : start,
       end_date: end === '' ? null : end,
       auto_create: autoCreate,
       active,
@@ -163,11 +167,12 @@ function RecurringForm({
       payment.interval_days !== draft.interval_days ||
       payment.start_date !== draft.start_date ||
       payment.end_date !== draft.end_date ||
+      (!payment.active && draft.active) ||
       (payment.next_due_date === null && draft.active)
     let nextDue = payment?.next_due_date ?? null
     if (scheduleChanged) {
       // Primera ocurrencia >= max(inicio, hoy).
-      const from = start > today ? start : today
+      const from = start !== '' && start > today ? start : today
       nextDue = nextOccurrence(
         { ...(payment ?? ({} as RecurringPayment)), ...draft },
         shiftDay(from, -1),

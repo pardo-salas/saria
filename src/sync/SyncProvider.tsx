@@ -30,6 +30,8 @@ interface SyncContextValue {
   status: SyncStatus
   available: boolean
   syncNow(): Promise<void>
+  /** 0 hasta la primera sincronización correcta; sube tras cada una. */
+  syncTick: number
 }
 
 const SyncContext = createContext<SyncContextValue | null>(null)
@@ -44,6 +46,7 @@ const SyncContext = createContext<SyncContextValue | null>(null)
 export function SyncProvider({ children }: { children: ReactNode }) {
   const { userId } = useSessionContext()
   const [status, setStatus] = useState<SyncStatus>(NEUTRAL)
+  const [syncTick, setSyncTick] = useState(0)
   const available = userId !== null && getSupabase() !== null
   const forceRef = useRef<() => Promise<void>>(async () => {})
 
@@ -56,7 +59,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
 
     const supabase = getSupabase()
     if (supabase === null) {
-      void seed()
+      void seed().then(() => setSyncTick((t) => t + 1))
       return
     }
 
@@ -74,10 +77,14 @@ export function SyncProvider({ children }: { children: ReactNode }) {
     async function run(force: boolean) {
       try {
         await engine.syncNow({ force })
-        if (!disposed && !seeded && engine.getStatus().lastSyncedAt !== null) {
+        if (disposed || engine.getStatus().lastSyncedAt === null) return
+        if (!seeded) {
           seeded = true
           await seed()
           if (!disposed) await engine.refreshPending()
+        }
+        if (!disposed) {
+          setSyncTick((t) => t + 1)
         }
       } catch {
         // El motor guarda sus errores en el estado; nada que propagar.
@@ -120,12 +127,13 @@ export function SyncProvider({ children }: { children: ReactNode }) {
       unsubscribe()
       forceRef.current = async () => {}
       setStatus(NEUTRAL)
+      setSyncTick(0)
     }
   }, [userId])
 
   const syncNow = useCallback(() => forceRef.current(), [])
   return (
-    <SyncContext.Provider value={{ status, available, syncNow }}>
+    <SyncContext.Provider value={{ status, available, syncNow, syncTick }}>
       {children}
     </SyncContext.Provider>
   )
@@ -148,4 +156,9 @@ export function useSyncAvailable(): boolean {
 export function useSyncNow(): () => Promise<void> {
   const ctx = useContext(SyncContext)
   return ctx?.syncNow ?? (async () => {})
+}
+
+/** 0 hasta que los datos locales están al día con la nube; sube tras cada sincronización correcta. */
+export function useSyncTick(): number {
+  return useContext(SyncContext)?.syncTick ?? 0
 }

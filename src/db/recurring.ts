@@ -52,19 +52,31 @@ export function createRecurringOps(db: SariaDB, repo: Repo) {
       db.recurring_payments,
       db.outbox,
       async () => {
-        await repo.put('transactions', {
-          id,
-          kind: p.kind,
-          amount_cents: input.amount_cents,
-          date: input.date,
-          account_id: input.account_id,
-          category_id: input.category_id,
-          note: input.note,
-          recurring_id: p.id,
-          installment_plan_id: null,
-          legacy_id: null,
-        })
-        await repo.put('recurring_payments', advance(p, occurrence))
+        // Se relee: otro cambio pudo mover o borrar el pago desde que se leyó.
+        const fresh = await db.recurring_payments.get(p.id)
+        if (
+          !fresh ||
+          fresh.deleted_at !== null ||
+          fresh.next_due_date !== occurrence
+        )
+          return
+        await repo.put(
+          'transactions',
+          {
+            id,
+            kind: p.kind,
+            amount_cents: input.amount_cents,
+            date: input.date,
+            account_id: input.account_id,
+            category_id: input.category_id,
+            note: input.note,
+            recurring_id: p.id,
+            installment_plan_id: null,
+            legacy_id: null,
+          },
+          { revive: true },
+        )
+        await repo.put('recurring_payments', advance(fresh, occurrence))
       },
     )
   }

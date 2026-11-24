@@ -3,7 +3,7 @@ import { Outlet } from 'react-router'
 import { useToday } from '@/db/queries'
 import { runAutoCreate } from '@/db/recurring'
 import { ensureDailyReminder } from '@/db/reminders'
-import { SyncProvider } from '@/sync/SyncProvider'
+import { SyncProvider, useSyncTick } from '@/sync/SyncProvider'
 import { BottomNav, type NavItem } from '@/ui/BottomNav'
 import { Fab } from '@/ui/Fab'
 import {
@@ -43,18 +43,22 @@ function LayoutFrame() {
   const quickAdd = useQuickAdd()
   const { userId } = useSessionContext()
   const today = useToday()
+  // Tras la primera sincronización: antes, un dispositivo nuevo pisaría lo de la nube.
+  const syncTick = useSyncTick()
+  const synced = syncTick > 0
 
   useEffect(() => {
-    if (userId === null) return
+    if (userId === null || !synced) return
     // Si falla, se reintenta en la próxima apertura de la app.
     ensureDailyReminder(userId).catch(() => {})
-  }, [userId])
+  }, [userId, synced])
 
   useEffect(() => {
-    if (userId === null) return
+    if (userId === null || !synced) return
     // Un error aquí no debe afectar la app: los pagos quedan en "Por pagar".
+    // Se repite tras cada sincronización para procesar pagos recién bajados.
     runAutoCreate(userId, today).catch(() => {})
-  }, [userId, today])
+  }, [userId, today, synced, syncTick])
 
   return (
     <>
