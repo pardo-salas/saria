@@ -70,7 +70,7 @@ export function planProgress(
   }
 }
 
-/** Σ `monthly_cents` de los planes activos con un cargo en `month` (YYYY-MM). */
+/** Σ `monthly_cents` de los planes vivos (activos o ya terminados) con un cargo en `month` (YYYY-MM). */
 export function monthlyCommitmentCents(
   plans: InstallmentPlan[],
   _txs: Transaction[],
@@ -78,7 +78,7 @@ export function monthlyCommitmentCents(
 ): number {
   let total = 0
   for (const p of plans) {
-    if (!p.active || p.deleted_at !== null) continue
+    if (p.deleted_at !== null) continue
     for (let n = 1; n <= p.months; n++) {
       const d = chargeDate(p, n)
       if (d.slice(0, 7) === month) {

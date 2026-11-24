@@ -4,7 +4,8 @@ import { useFinance } from '@/db/queries'
 import type { Account } from '@/db/schema'
 import { accountsBreakdown, type AccountGroup } from '@/domain/balances'
 import type { IconName } from '@/domain/catalog'
-import { formatCents } from '@/domain/money'
+import { formatCents, sumCents } from '@/domain/money'
+import { monthlyYieldCents } from '@/domain/yields'
 import { AccountSheet } from '@/features/forms/AccountSheet'
 import { AppIcon } from '@/ui/AppIcon'
 import { Button } from '@/ui/Button'
@@ -71,6 +72,15 @@ export function Cuentas() {
   const archivedCount = finance.accounts.filter((a) => a.archived).length
   const hasActive = breakdown.groups.length > 0
 
+  const yieldCents = sumCents(
+    finance.accounts
+      .filter((a) => !a.archived)
+      .map((a) => monthlyYieldCents(a, finance.balances.get(a.id) ?? 0)),
+  )
+  const hasYield = finance.accounts.some(
+    (a) => !a.archived && a.yield_rate !== null,
+  )
+
   const notes = [
     breakdown.creditDebtCents > 0
       ? `Debes en tarjetas ${formatCents(breakdown.creditDebtCents)}`
@@ -104,6 +114,14 @@ export function Cuentas() {
             {notes.length > 0 && (
               <p className="mt-2 text-sm text-texto-suave">
                 {notes.join(' · ')}
+              </p>
+            )}
+            {hasYield && (
+              <p className="mt-2 text-sm text-texto-suave">
+                Rendimiento estimado este mes{' '}
+                <span className="font-semibold text-texto cifras">
+                  {formatCents(yieldCents)}
+                </span>
               </p>
             )}
           </section>

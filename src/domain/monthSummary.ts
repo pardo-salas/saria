@@ -5,6 +5,7 @@ import type {
   RecurringPayment,
   Transaction,
 } from '../db/schema'
+import type { WaterLevel } from './balances'
 import { monthlyCommitmentCents } from './installments'
 import { sumCents } from './money'
 import { nextOccurrence } from './recurring'
@@ -76,4 +77,23 @@ export function monthSummary(input: {
     spentOutsideCents,
     leftCents: availableCents - spentOutsideCents,
   }
+}
+
+/** Nivel de agua de Inicio: lo que te queda sobre lo disponible del mes. */
+export function summaryWaterLevel(
+  salaryCents: number | null,
+  summary: MonthSummary,
+  daysLeft: number,
+): WaterLevel {
+  if (salaryCents === null || salaryCents <= 0) return { state: 'no-salary' }
+  const { availableCents, leftCents } = summary
+  // El porcentaje no es dinero: aquí la división flotante es válida.
+  const percent =
+    availableCents <= 0
+      ? 0
+      : Math.min(
+          100,
+          Math.max(0, Math.round((leftCents * 100) / availableCents)),
+        )
+  return { state: 'ok', remainingCents: leftCents, percent, daysLeft }
 }

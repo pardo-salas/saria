@@ -5,6 +5,8 @@ import { useFinance, useToday } from '@/db/queries'
 import { formatDayLabel } from '@/domain/dates'
 import { entriesForAccount, groupByDay, type FeedEntry } from '@/domain/feed'
 import { formatCents } from '@/domain/money'
+import { CardPanel } from '@/features/accounts/CardPanel'
+import { YieldPanel } from '@/features/accounts/YieldPanel'
 import { AccountSheet } from '@/features/forms/AccountSheet'
 import { TransactionSheet } from '@/features/forms/TransactionSheet'
 import { TransferSheet } from '@/features/forms/TransferSheet'
@@ -78,6 +80,18 @@ export function CuentaDetalle() {
           Editar cuenta
         </Button>
       </header>
+
+      {account.type === 'credit' && (
+        <CardPanel
+          account={account}
+          transactions={finance.transactions}
+          transfers={finance.transfers}
+          today={today}
+        />
+      )}
+      {(account.type === 'debit' || account.type === 'investment') && (
+        <YieldPanel account={account} balanceCents={balance} />
+      )}
 
       <div role="group" aria-label="Ver" className="flex flex-wrap gap-2">
         {VIEWS.map((v) => (

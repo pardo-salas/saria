@@ -47,6 +47,31 @@ export function AccountSheet({ open, onClose, account }: AccountSheetProps) {
   )
 }
 
+/** Tasa para el campo: decimal con coma. */
+function rateText(rate: number | null | undefined): string {
+  return rate === null || rate === undefined
+    ? ''
+    : String(rate).replace('.', ',')
+}
+
+/** Vacío = `null`; texto inválido = `undefined`. Acepta coma o punto decimal. */
+function parseRate(text: string): number | null | undefined {
+  const t = text.trim().replace(',', '.')
+  if (t === '') return null
+  if (!/^\d+(\.\d+)?$/.test(t)) return undefined
+  const n = Number(t)
+  return n <= 1000 ? n : undefined
+}
+
+/** Vacío = `null`; fuera de 1–31 = `undefined`. */
+function parseDay(text: string): number | null | undefined {
+  const t = text.trim()
+  if (t === '') return null
+  if (!/^\d+$/.test(t)) return undefined
+  const n = Number(t)
+  return n >= 1 && n <= 31 ? n : undefined
+}
+
 type Sign = 'pos' | 'neg'
 type Pending = 'archive' | 'delete' | null
 
@@ -76,6 +101,23 @@ function AccountForm({
   const [sign, setSign] = useState<Sign>(
     account && account.initial_balance_cents < 0 ? 'neg' : 'pos',
   )
+  const [limit, setLimit] = useState<number | null>(
+    account?.credit_limit_cents ?? null,
+  )
+  const [statementDay, setStatementDay] = useState(
+    account?.statement_day?.toString() ?? '',
+  )
+  const [dueDay, setDueDay] = useState(account?.due_day?.toString() ?? '')
+  const [rate, setRate] = useState(rateText(account?.yield_rate))
+  const [cap, setCap] = useState<number | null>(
+    account?.yield_cap_cents ?? null,
+  )
+  const [overRate, setOverRate] = useState(
+    rateText(account?.yield_rate_over_cap),
+  )
+  const [extraErrors, setExtraErrors] = useState<
+    Partial<Record<'statement' | 'due' | 'rate' | 'over', string>>
+  >({})
   const [balanceValid, setBalanceValid] = useState(true)
   const balanceRef = useRef<HTMLInputElement>(null)
   const inFlight = useRef(false)
@@ -129,6 +171,22 @@ function AccountForm({
       balanceRef.current?.focus()
       return
     }
+    const isCredit = type === 'credit'
+    const hasYield = type === 'debit' || type === 'investment'
+    const errs: typeof extraErrors = {}
+    const statement = isCredit ? parseDay(statementDay) : null
+    const due = isCredit ? parseDay(dueDay) : null
+    if (isCredit && statement === undefined)
+      errs.statement = 'Escribe un día del 1 al 31'
+    if (isCredit && due === undefined) errs.due = 'Escribe un día del 1 al 31'
+    const yieldRate = hasYield ? parseRate(rate) : null
+    const yieldOver = hasYield ? parseRate(overRate) : null
+    if (hasYield && yieldRate === undefined)
+      errs.rate = 'Escribe una tasa válida, por ejemplo 6,5'
+    if (hasYield && yieldOver === undefined)
+      errs.over = 'Escribe una tasa válida, por ejemplo 2'
+    setExtraErrors(errs)
+    if (Object.keys(errs).length > 0) return
     const cents = balance ?? 0
     void run(async () => {
       await repo.put('accounts', {
@@ -141,6 +199,15 @@ function AccountForm({
         icon,
         color,
         position: account?.position ?? nextPosition(finance?.accounts ?? []),
+        credit_limit_cents: isCredit ? limit : null,
+        statement_day: statement ?? null,
+        due_day: due ?? null,
+        yield_rate: yieldRate ?? null,
+        yield_cap_cents: hasYield && yieldRate !== null ? cap : null,
+        yield_rate_over_cap:
+          hasYield && yieldRate !== null && cap !== null
+            ? (yieldOver ?? null)
+            : null,
       })
     }, 'Cuenta guardada')
   }
@@ -211,6 +278,55 @@ function AccountForm({
         onValidityChange={setBalanceValid}
         inputRef={balanceRef}
       />
+      {type === 'credit' && (
+        <>
+          <AmountInput
+            label="Línea de crédito"
+            valueCents={limit}
+            onChange={setLimit}
+          />
+          <TextField
+            label="Día de corte"
+            inputMode="numeric"
+            value={statementDay}
+            onChange={(e) => setStatementDay(e.target.value)}
+            error={extraErrors.statement}
+            hint="Si el mes es más corto, cae en su último día."
+          />
+          <TextField
+            label="Día límite de pago"
+            inputMode="numeric"
+            value={dueDay}
+            onChange={(e) => setDueDay(e.target.value)}
+            error={extraErrors.due}
+          />
+        </>
+      )}
+      {(type === 'debit' || type === 'investment') && (
+        <>
+          <TextField
+            label="Tasa anual %"
+            inputMode="decimal"
+            value={rate}
+            onChange={(e) => setRate(e.target.value)}
+            error={extraErrors.rate}
+            hint="Déjala vacía si la cuenta no da rendimiento."
+          />
+          <AmountInput
+            label="Tope con tasa principal (opcional)"
+            valueCents={cap}
+            onChange={setCap}
+          />
+          <TextField
+            label="Tasa excedente % (opcional)"
+            inputMode="decimal"
+            value={overRate}
+            onChange={(e) => setOverRate(e.target.value)}
+            error={extraErrors.over}
+            hint="Se aplica al saldo que pasa del tope."
+          />
+        </>
+      )}
       <label className="flex min-h-11 cursor-pointer items-center gap-3 text-base text-texto">
         <input
           type="checkbox"

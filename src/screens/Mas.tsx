@@ -308,6 +308,11 @@ export function Mas() {
           label="Pagos habituales"
           hint="Rentas, suscripciones y mensualidades."
         />
+        <NavRow
+          to="/mas/compras"
+          label="Compras a meses"
+          hint="Lo que pagas en mensualidades y cuánto falta."
+        />
         <ReminderCard />
         <NavRow
           to="/mas/respaldo"

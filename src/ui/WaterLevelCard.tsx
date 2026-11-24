@@ -5,6 +5,8 @@ import type { WaterLevel } from '@/domain/balances'
 export interface WaterLevelCardProps {
   /** `null` = cargando. */
   level: WaterLevel | null
+  /** Abre el desglose del mes (solo con sueldo). */
+  onOpen?(): void
 }
 
 function clampPercent(percent: number): number {
@@ -19,7 +21,7 @@ function detail(percent: number, daysLeft: number): string {
       : daysLeft === 1
         ? 'falta 1 día'
         : `faltan ${daysLeft} días`
-  return `${Math.round(percent)}% de tu sueldo · ${days}`
+  return `${Math.round(percent)}% de lo disponible · ${days}`
 }
 
 /**
@@ -28,7 +30,7 @@ function detail(percent: number, daysLeft: number): string {
  * prefers-reduced-motion). El detalle va sobre una pastilla oscura fija para
  * conservar el contraste con el agua alta o baja.
  */
-export function WaterLevelCard({ level }: WaterLevelCardProps) {
+export function WaterLevelCard({ level, onOpen }: WaterLevelCardProps) {
   const ok = level?.state === 'ok' ? level : null
   const height = ok ? clampPercent(ok.percent) : 0
 
@@ -72,6 +74,14 @@ export function WaterLevelCard({ level }: WaterLevelCardProps) {
         </>
       ) : (
         <p className="text-etiqueta text-nivel-texto/75">Cargando…</p>
+      )}
+      {ok && onOpen && (
+        <button
+          type="button"
+          onClick={onOpen}
+          aria-label="Ver cómo se calcula tu mes"
+          className="absolute inset-0 z-10 cursor-pointer rounded-tarjeta focus-visible:outline-2 focus-visible:-outline-offset-4 focus-visible:outline-foco"
+        />
       )}
     </section>
   )

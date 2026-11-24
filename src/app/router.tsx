@@ -15,6 +15,11 @@ import { useSessionContext } from './SessionProvider'
 const Categorias = lazy(() =>
   import('@/screens/Categorias').then((m) => ({ default: m.Categorias })),
 )
+const ComprasAMeses = lazy(() =>
+  import('@/screens/ComprasAMeses').then((m) => ({
+    default: m.ComprasAMeses,
+  })),
+)
 const CuentaDetalle = lazy(() =>
   import('@/screens/CuentaDetalle').then((m) => ({ default: m.CuentaDetalle })),
 )
@@ -87,6 +92,7 @@ export function AppRoutes() {
           <Route path="mas" element={<Mas />} />
           <Route path="mas/categorias" element={<Categorias />} />
           <Route path="mas/pagos" element={<PagosHabituales />} />
+          <Route path="mas/compras" element={<ComprasAMeses />} />
           <Route path="mas/respaldo" element={<Respaldo />} />
         </Route>
         <Route path="iniciar-sesion" element={<SignedOutOnly />} />

@@ -1,13 +1,10 @@
 import { useState } from 'react'
 import { Link } from 'react-router'
-import { useFinance, useSettings, useToday } from '@/db/queries'
-import {
-  periodSummary,
-  totalBalance,
-  waterLevel,
-  type WaterLevel,
-} from '@/domain/balances'
-import { daysLeftInMonth } from '@/domain/dates'
+import { useFinance, useLiveRows, useSettings, useToday } from '@/db/queries'
+import { periodSummary, totalBalance, type WaterLevel } from '@/domain/balances'
+import { daysLeftInMonth, monthKey } from '@/domain/dates'
+import { monthSummary, summaryWaterLevel } from '@/domain/monthSummary'
+import { MonthSummarySheet } from '@/features/summary/MonthSummarySheet'
 import type { FeedEntry } from '@/domain/feed'
 import { formatCents } from '@/domain/money'
 import { DailyReminderBanner } from '@/features/recurring/DailyReminderBanner'
@@ -57,19 +54,32 @@ export function Inicio() {
   const today = useToday()
   const syncStatus = useSyncStatus()
   const syncAvailable = useSyncAvailable()
+  const recurring = useLiveRows('recurring_payments')
+  const plans = useLiveRows('installment_plans')
   const [editing, setEditing] = useState<FeedEntry | null>(null)
+  const [summaryOpen, setSummaryOpen] = useState(false)
 
+  let summary: ReturnType<typeof monthSummary> | null = null
   let level: WaterLevel | null = null
   let todayEntries: FeedEntry[] = []
   let flows: ReturnType<typeof periodSummary> | null = null
   let total: number | null = null
   if (finance && settings !== undefined) {
     flows = periodSummary(finance.transactions, today)
-    level = waterLevel(
-      settings?.monthly_income_cents ?? null,
-      flows.month.expenseCents,
-      daysLeftInMonth(today),
-    )
+    if (recurring && plans) {
+      summary = monthSummary({
+        salaryCents: settings?.monthly_income_cents ?? 0,
+        recurring,
+        plans,
+        txs: finance.transactions,
+        month: monthKey(today),
+      })
+      level = summaryWaterLevel(
+        settings?.monthly_income_cents ?? null,
+        summary,
+        daysLeftInMonth(today),
+      )
+    }
     todayEntries = finance.feed.filter((e) => e.row.date === today)
     total = totalBalance(finance.accounts, finance.balances)
   }
@@ -86,7 +96,18 @@ export function Inicio() {
 
       <DailyReminderBanner />
 
-      <WaterLevelCard level={level} />
+      <WaterLevelCard
+        level={level}
+        onOpen={summary ? () => setSummaryOpen(true) : undefined}
+      />
+      {summary && settings?.monthly_income_cents ? (
+        <MonthSummarySheet
+          open={summaryOpen}
+          onClose={() => setSummaryOpen(false)}
+          salaryCents={settings.monthly_income_cents}
+          summary={summary}
+        />
+      ) : null}
 
       {flows && total !== null && (
         <div className="mt-3 grid grid-cols-2 gap-3">

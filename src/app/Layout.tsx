@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { Outlet } from 'react-router'
 import { useToday } from '@/db/queries'
+import { runInstallments } from '@/db/installments'
 import { runAutoCreate } from '@/db/recurring'
 import { ensureDailyReminder } from '@/db/reminders'
 import { SyncProvider, useSyncTick } from '@/sync/SyncProvider'
@@ -58,6 +59,13 @@ function LayoutFrame() {
     // Un error aquí no debe afectar la app: los pagos quedan en "Por pagar".
     // Se repite tras cada sincronización para procesar pagos recién bajados.
     runAutoCreate(userId, today).catch(() => {})
+  }, [userId, today, synced, syncTick])
+
+  useEffect(() => {
+    if (userId === null || !synced) return
+    // Un error aquí no debe afectar la app: los cargos se generan en la
+    // próxima apertura o sincronización (los IDs fijos evitan duplicados).
+    runInstallments(userId, today).catch(() => {})
   }, [userId, today, synced, syncTick])
 
   return (

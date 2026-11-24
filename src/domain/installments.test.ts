@@ -111,7 +111,7 @@ describe('chargeDate y próximo cargo', () => {
 })
 
 describe('monthlyCommitmentCents', () => {
-  it('suma los planes activos con un cargo en el mes', () => {
+  it('suma los planes vivos (activos o terminados) con un cargo en el mes', () => {
     const plans = [
       plan({ id: 'a', purchase_date: '2026-09-11', monthly_cents: 100 }),
       plan({ id: 'b', purchase_date: '2026-10-11', monthly_cents: 200 }),
@@ -134,8 +134,8 @@ describe('monthlyCommitmentCents', () => {
         deleted_at: 'x',
       }),
     ]
-    // Noviembre: a (cargo 2), b (cargo 1); c terminó en abril.
-    expect(monthlyCommitmentCents(plans, [], '2026-11')).toBe(300)
+    // Noviembre: a, b y d (inactivo pero con cargo en el mes); c terminó en abril.
+    expect(monthlyCommitmentCents(plans, [], '2026-11')).toBe(1100)
     // Septiembre: nadie tiene cargo (los cargos empiezan un mes después).
     expect(monthlyCommitmentCents(plans, [], '2026-09')).toBe(0)
   })

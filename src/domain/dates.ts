@@ -102,3 +102,15 @@ export function formatDayLabel(date: string, today: string): string {
   const base = `${weekday} ${dia}`
   return y === Number(today.slice(0, 4)) ? base : `${base} ${y}`
 }
+
+const shortDateFormat = new Intl.DateTimeFormat('es-MX', {
+  day: 'numeric',
+  month: 'short',
+  year: 'numeric',
+  timeZone: 'UTC',
+})
+
+/** "5 mar 2027" a partir de YYYY-MM-DD. */
+export function formatShortDate(date: string): string {
+  return shortDateFormat.format(new Date(`${date}T00:00:00Z`))
+}

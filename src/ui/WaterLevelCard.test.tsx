@@ -26,7 +26,7 @@ describe('WaterLevelCard', () => {
         }}
       />,
     )
-    expect(screen.getByText(/60% de tu sueldo/)).toHaveTextContent(
+    expect(screen.getByText(/60% de lo disponible/)).toHaveTextContent(
       'último día del mes',
     )
   })
