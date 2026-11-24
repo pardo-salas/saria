@@ -16,6 +16,9 @@ const RESET_ERROR_MESSAGES: Record<AuthError, string> = {
   misconfigured: AUTH_ERROR_MESSAGES.misconfigured,
   invalid_credentials:
     'No se pudo enviar el correo. Revisa que esté bien escrito e intenta de nuevo.',
+  email_not_confirmed:
+    'No se pudo enviar el correo. Revisa que esté bien escrito e intenta de nuevo.',
+  invalid_api_key: AUTH_ERROR_MESSAGES.invalid_api_key,
   unknown:
     'No se pudo enviar el correo. Revisa que esté bien escrito e intenta de nuevo.',
 }

@@ -5,12 +5,21 @@ import {
 import { AUTH_STORAGE_KEY, getSupabase } from './supabase'
 
 export type AuthError =
-  'invalid_credentials' | 'offline' | 'misconfigured' | 'unknown'
+  | 'invalid_credentials'
+  | 'email_not_confirmed'
+  | 'invalid_api_key'
+  | 'offline'
+  | 'misconfigured'
+  | 'unknown'
 
 export type AuthResult = { ok: true } | { ok: false; error: AuthError }
 
 export const AUTH_ERROR_MESSAGES: Record<AuthError, string> = {
   invalid_credentials: 'El correo o la contraseña no coinciden.',
+  email_not_confirmed:
+    'Tu correo aún no está confirmado. Confírmalo desde el enlace que te llegó o márcalo como confirmado en Supabase (Authentication → Users).',
+  invalid_api_key:
+    'La clave de Supabase no es válida. Revisa VITE_SUPABASE_ANON_KEY en Vercel y vuelve a desplegar.',
   offline:
     'Necesitas internet para iniciar sesión la primera vez en este dispositivo.',
   misconfigured:
@@ -21,6 +30,17 @@ export const AUTH_ERROR_MESSAGES: Record<AuthError, string> = {
 function toAuthError(error: unknown): AuthError {
   if (isAuthApiError(error) && error.code === 'invalid_credentials') {
     return 'invalid_credentials'
+  }
+  if (isAuthApiError(error) && error.code === 'email_not_confirmed') {
+    return 'email_not_confirmed'
+  }
+  if (
+    typeof error === 'object' &&
+    error !== null &&
+    (error as { status?: unknown }).status === 401 &&
+    String((error as { message?: unknown }).message).includes('Invalid API key')
+  ) {
+    return 'invalid_api_key'
   }
   if (isAuthRetryableFetchError(error)) return 'offline'
   return 'unknown'

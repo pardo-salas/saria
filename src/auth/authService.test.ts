@@ -58,6 +58,32 @@ describe('signIn', () => {
     })
   })
 
+  it('correo sin confirmar → email_not_confirmed', async () => {
+    auth.signInWithPassword.mockResolvedValue({
+      data: {},
+      error: new AuthApiError(
+        'Email not confirmed',
+        400,
+        'email_not_confirmed',
+      ),
+    })
+    await expect(signIn('b@x.mx', 'secreto')).resolves.toEqual({
+      ok: false,
+      error: 'email_not_confirmed',
+    })
+  })
+
+  it('401 Invalid API key → invalid_api_key', async () => {
+    auth.signInWithPassword.mockResolvedValue({
+      data: {},
+      error: new AuthApiError('Invalid API key', 401, undefined),
+    })
+    await expect(signIn('b@x.mx', 'secreto')).resolves.toEqual({
+      ok: false,
+      error: 'invalid_api_key',
+    })
+  })
+
   it('AuthRetryableFetchError → offline', async () => {
     auth.signInWithPassword.mockResolvedValue({
       data: {},
@@ -165,6 +191,10 @@ describe('AUTH_ERROR_MESSAGES', () => {
   it('tiene la copia fija en español', () => {
     expect(AUTH_ERROR_MESSAGES).toEqual({
       invalid_credentials: 'El correo o la contraseña no coinciden.',
+      email_not_confirmed:
+        'Tu correo aún no está confirmado. Confírmalo desde el enlace que te llegó o márcalo como confirmado en Supabase (Authentication → Users).',
+      invalid_api_key:
+        'La clave de Supabase no es válida. Revisa VITE_SUPABASE_ANON_KEY en Vercel y vuelve a desplegar.',
       offline:
         'Necesitas internet para iniciar sesión la primera vez en este dispositivo.',
       misconfigured:
