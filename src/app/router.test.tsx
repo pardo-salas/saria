@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router'
 import { describe, expect, it, vi } from 'vitest'
@@ -107,12 +107,14 @@ describe.each([
   ['/cuentas', 'Cuentas', 'Aún no tienes cuentas'],
   ['/graficas', 'Gráficas', 'Aún no hay nada que graficar'],
 ])('%s', (path, title, empty) => {
-  it('muestra el título y un estado vacío que dice qué llegará', () => {
+  it('muestra el título y un estado vacío que dice qué llegará', async () => {
     renderAt(path, 'signed-in')
     expect(
       screen.getByRole('heading', { level: 1, name: title }),
     ).toBeInTheDocument()
-    expect(screen.getByRole('main')).toHaveTextContent(empty)
+    await waitFor(() =>
+      expect(screen.getByRole('main')).toHaveTextContent(empty),
+    )
     expect(screen.getByRole('main')).toHaveTextContent('Aquí verás')
   })
 })
