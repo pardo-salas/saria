@@ -6,6 +6,7 @@ import type { GateState } from '@/auth/session'
 import { AppRoutes } from './router'
 import { SessionValueProvider } from './SessionProvider'
 import { ThemeProvider } from './ThemeProvider'
+import { ToastProvider } from '@/ui/Toast'
 
 function renderAt(path: string, gate: GateState) {
   return render(
@@ -17,9 +18,11 @@ function renderAt(path: string, gate: GateState) {
           signOut: vi.fn(async () => {}),
         }}
       >
-        <MemoryRouter initialEntries={[path]}>
-          <AppRoutes />
-        </MemoryRouter>
+        <ToastProvider>
+          <MemoryRouter initialEntries={[path]}>
+            <AppRoutes />
+          </MemoryRouter>
+        </ToastProvider>
       </SessionValueProvider>
     </ThemeProvider>,
   )
@@ -81,24 +84,21 @@ describe('rutas', () => {
 })
 
 describe('Inicio', () => {
-  it('muestra el nivel de agua vacío y la lista Hoy vacía', () => {
+  it('sin sueldo invita a capturarlo y muestra la lista Hoy', async () => {
     renderAt('/', 'signed-in')
-    expect(
-      screen.getByRole('region', { name: 'Te queda este mes' }),
-    ).toHaveTextContent('Aún no hay movimientos este mes')
+    expect(await screen.findByText(/Captura tu sueldo en/)).toBeInTheDocument()
     expect(
       screen.getByRole('heading', { level: 2, name: 'Hoy' }),
     ).toBeInTheDocument()
   })
 
-  it('el botón + abre una hoja que dice que el registro de gastos llega pronto', async () => {
+  it('el botón + abre el registro rápido', async () => {
     const user = userEvent.setup()
     renderAt('/', 'signed-in')
-    await user.click(screen.getByRole('button', { name: 'Registrar gasto' }))
-    const dialog = screen.getByRole('dialog', { name: 'Registrar gasto' })
-    expect(dialog).toHaveTextContent(
-      'Muy pronto podrás anotar tus gastos aquí en dos toques.',
-    )
+    await user.click(screen.getByRole('button', { name: 'Registrar' }))
+    expect(
+      screen.getByRole('dialog', { name: 'Registrar movimiento' }),
+    ).toBeInTheDocument()
   })
 })
 

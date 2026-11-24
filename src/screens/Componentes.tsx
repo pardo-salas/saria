@@ -149,13 +149,23 @@ export function Componentes() {
 
       <Section title="Nivel de agua">
         <div className="flex flex-col gap-3">
-          <WaterLevelCard remainingCents={724000} percent={58} daysLeft={8} />
-          <WaterLevelCard remainingCents={52000} percent={9} daysLeft={1} />
           <WaterLevelCard
-            remainingCents={null}
-            percent={null}
-            daysLeft={null}
+            level={{
+              state: 'ok',
+              remainingCents: 724000,
+              percent: 58,
+              daysLeft: 8,
+            }}
           />
+          <WaterLevelCard
+            level={{
+              state: 'ok',
+              remainingCents: 52000,
+              percent: 9,
+              daysLeft: 1,
+            }}
+          />
+          <WaterLevelCard level={{ state: 'no-salary' }} />
         </div>
       </Section>
 

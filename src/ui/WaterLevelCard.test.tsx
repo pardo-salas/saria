@@ -1,43 +1,42 @@
 import { render, screen } from '@testing-library/react'
+import { MemoryRouter } from 'react-router'
+import { describe, expect, it } from 'vitest'
 import { WaterLevelCard } from './WaterLevelCard'
 
+const r = (ui: React.ReactElement) => render(<MemoryRouter>{ui}</MemoryRouter>)
+
 describe('WaterLevelCard', () => {
-  it('muestra lo que queda, el porcentaje y los días', () => {
-    render(<WaterLevelCard remainingCents={724000} percent={58} daysLeft={8} />)
-    expect(screen.getByText('Te queda este mes')).toBeInTheDocument()
-    expect(screen.getByText('$7,240.00')).toBeInTheDocument()
-    expect(
-      screen.getByText('58% de tu disponible, faltan 8 días'),
-    ).toBeInTheDocument()
-    expect(screen.getByTestId('agua').style.height).toBe('58%')
+  it('sin sueldo invita a capturarlo en Más', () => {
+    r(<WaterLevelCard level={{ state: 'no-salary' }} />)
+    expect(screen.getByText(/Captura tu sueldo en/)).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Más' })).toHaveAttribute(
+      'href',
+      '/mas',
+    )
   })
 
-  it('usa singular cuando falta 1 día', () => {
-    render(<WaterLevelCard remainingCents={10000} percent={5} daysLeft={1} />)
-    expect(
-      screen.getByText('5% de tu disponible, falta 1 día'),
-    ).toBeInTheDocument()
+  it('muestra porcentaje y días; el último día lo dice', () => {
+    r(
+      <WaterLevelCard
+        level={{
+          state: 'ok',
+          remainingCents: 724000,
+          percent: 60,
+          daysLeft: 0,
+        }}
+      />,
+    )
+    expect(screen.getByText(/60% de tu sueldo/)).toHaveTextContent(
+      'último día del mes',
+    )
   })
 
-  it('acota el porcentaje a 0–100', () => {
-    const { rerender } = render(
-      <WaterLevelCard remainingCents={724000} percent={140} daysLeft={8} />,
+  it('con saldo negativo el agua queda en 0%', () => {
+    r(
+      <WaterLevelCard
+        level={{ state: 'ok', remainingCents: -5000, percent: 0, daysLeft: 8 }}
+      />,
     )
-    expect(screen.getByTestId('agua').style.height).toBe('100%')
-    rerender(
-      <WaterLevelCard remainingCents={-5000} percent={-20} daysLeft={8} />,
-    )
-    expect(screen.getByTestId('agua').style.height).toBe('0%')
-  })
-
-  it('sin movimientos muestra el estado vacío con el agua en 0', () => {
-    render(
-      <WaterLevelCard remainingCents={null} percent={null} daysLeft={null} />,
-    )
-    expect(
-      screen.getByText('Aún no hay movimientos este mes'),
-    ).toBeInTheDocument()
-    expect(screen.getByText(/botón \+/)).toBeInTheDocument()
-    expect(screen.getByTestId('agua').style.height).toBe('0%')
+    expect(screen.getByTestId('agua')).toHaveStyle({ height: '0%' })
   })
 })
