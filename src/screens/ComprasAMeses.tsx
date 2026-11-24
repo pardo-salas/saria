@@ -94,6 +94,10 @@ export function ComprasAMeses() {
                         {r.paid} / {r.plan.months}
                       </span>{' '}
                       · Termina {formatShortDate(r.endDate)}
+                      {!r.plan.active &&
+                        (r.paid >= r.plan.months
+                          ? ' · Terminada'
+                          : ' · Pausada')}
                     </span>
                   </span>
                   <span className="shrink-0 text-right">

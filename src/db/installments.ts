@@ -85,10 +85,13 @@ export function createInstallmentOps(db: SariaDB, repo: Repo) {
             .filter((t) => t.installment_plan_id === p.id)
             .toArray()
           if (paidCount(p, live) >= p.months) {
-            await repo.put('installment_plans', {
-              ...stripMeta(p),
-              active: false,
-            })
+            const fresh = await db.installment_plans.get(p.id)
+            if (fresh && fresh.deleted_at === null) {
+              await repo.put('installment_plans', {
+                ...stripMeta(fresh),
+                active: false,
+              })
+            }
           }
         },
       )

@@ -199,15 +199,26 @@ function AccountForm({
         icon,
         color,
         position: account?.position ?? nextPosition(finance?.accounts ?? []),
-        credit_limit_cents: isCredit ? limit : null,
-        statement_day: statement ?? null,
-        due_day: due ?? null,
-        yield_rate: yieldRate ?? null,
-        yield_cap_cents: hasYield && yieldRate !== null ? cap : null,
-        yield_rate_over_cap:
-          hasYield && yieldRate !== null && cap !== null
+        credit_limit_cents: isCredit
+          ? limit
+          : (account?.credit_limit_cents ?? null),
+        statement_day: isCredit
+          ? (statement ?? null)
+          : (account?.statement_day ?? null),
+        due_day: isCredit ? (due ?? null) : (account?.due_day ?? null),
+        yield_rate: hasYield
+          ? (yieldRate ?? null)
+          : (account?.yield_rate ?? null),
+        yield_cap_cents: hasYield
+          ? yieldRate !== null
+            ? cap
+            : null
+          : (account?.yield_cap_cents ?? null),
+        yield_rate_over_cap: hasYield
+          ? yieldRate !== null && cap !== null
             ? (yieldOver ?? null)
-            : null,
+            : null
+          : (account?.yield_rate_over_cap ?? null),
       })
     }, 'Cuenta guardada')
   }

@@ -54,6 +54,16 @@ export function InstallmentDetail({
         />
         <Row label="Fecha final" value={formatShortDate(progress.endDate)} />
         <Row
+          label="Estado"
+          value={
+            plan.active
+              ? 'Activa'
+              : progress.paid >= plan.months
+                ? 'Terminada'
+                : 'Pausada'
+          }
+        />
+        <Row
           label="Próximo cargo"
           value={
             progress.nextChargeDate

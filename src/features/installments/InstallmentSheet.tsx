@@ -76,6 +76,10 @@ function InstallmentForm({
   )
   const [monthlyTouched, setMonthlyTouched] = useState(plan !== undefined)
   const [paid, setPaid] = useState(plan ? String(plan.paid_months) : '0')
+  // Un plan terminado se ve como terminado, no como pausado.
+  const [paused, setPaused] = useState(
+    plan ? !plan.active && plan.paid_months < plan.months : false,
+  )
   const [errors, setErrors] = useState<Errors>({})
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -116,7 +120,8 @@ function InstallmentForm({
     if (!finance) return
     const next: Errors = {}
     if (concept.trim() === '') next.concept = 'Escribe qué compraste'
-    if (accountId === null) next.account = 'Elige una tarjeta o cuenta'
+    if (accountId === null && !paused)
+      next.account = 'Elige una tarjeta o cuenta'
     if (!isValidDate(date)) next.date = 'Elige una fecha de compra válida'
     if (total === null || total <= 0) next.total = 'Escribe un total mayor a 0'
     if (monthsN === null) next.months = 'Escribe de 1 a 120 meses'
@@ -140,7 +145,7 @@ function InstallmentForm({
           months: monthsN!,
           monthly_cents: monthlyShown!,
           paid_months: paidN!,
-          active: paidN! < monthsN!,
+          active: !paused && paidN! < monthsN!,
         })
       },
       plan ? 'Compra guardada' : 'Compra creada',
@@ -212,6 +217,20 @@ function InstallmentForm({
         error={errors.paid}
         hint="Los que pagaste antes de usar Saria. Los cargos nuevos se crean solos."
       />
+      <label className="flex min-h-11 cursor-pointer items-start gap-3">
+        <input
+          type="checkbox"
+          checked={paused}
+          onChange={(e) => setPaused(e.target.checked)}
+          className="mt-3 size-5 accent-cobalto"
+        />
+        <span className="py-2">
+          Compra pausada
+          <span className="block text-sm text-texto-suave">
+            No genera cargos ni cuenta en el disponible
+          </span>
+        </span>
+      </label>
       {confirmDelete ? (
         <ConfirmStep
           message="¿Borrar esta compra? Los movimientos ya creados se conservan."
