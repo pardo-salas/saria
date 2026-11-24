@@ -2,7 +2,9 @@ import { lazy, Suspense } from 'react'
 import { Navigate, Route, Routes } from 'react-router'
 import { AUTH_ERROR_MESSAGES } from '@/auth/authService'
 import { AuthScreen } from '@/screens/AuthScreen'
+import { CuentaDetalle } from '@/screens/CuentaDetalle'
 import { Cuentas } from '@/screens/Cuentas'
+import { CuentasArchivadas } from '@/screens/CuentasArchivadas'
 import { Graficas } from '@/screens/Graficas'
 import { IniciarSesion } from '@/screens/IniciarSesion'
 import { Inicio } from '@/screens/Inicio'
@@ -57,6 +59,8 @@ export function AppRoutes() {
         <Route index element={<Inicio />} />
         <Route path="movimientos" element={<Movimientos />} />
         <Route path="cuentas" element={<Cuentas />} />
+        <Route path="cuentas/archivadas" element={<CuentasArchivadas />} />
+        <Route path="cuentas/:id" element={<CuentaDetalle />} />
         <Route path="graficas" element={<Graficas />} />
         <Route path="mas" element={<Mas />} />
       </Route>
