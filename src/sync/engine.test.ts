@@ -148,6 +148,32 @@ describe('motor de sincronización', () => {
     expect(server.upsertLog).toEqual(['accounts', 'transactions'])
   })
 
+  it('una fila rechazada no bloquea el resto de la cola', async () => {
+    const server = createFakeSupabase()
+    const a = device(server)
+    await a.engine.syncNow()
+    const ok1 = await a.repo.put('accounts', account('Uno'))
+    const bad = await a.repo.put('accounts', account('Mala'))
+    const ok2 = await a.repo.put('accounts', account('Dos'))
+    server.hooks.rejectIds.add(bad.id)
+    await a.engine.syncNow()
+    const ids = server.rows('accounts').map((r) => r.id)
+    expect(ids).toContain(ok1.id)
+    expect(ids).toContain(ok2.id)
+    expect(ids).not.toContain(bad.id)
+    const left = await a.db.outbox.toArray()
+    expect(left).toHaveLength(1)
+    expect(left[0]!.row_id).toBe(bad.id)
+    expect(left[0]!.attempts).toBe(1)
+    for (let i = 0; i < 6; i++) await a.engine.syncNow({ force: true })
+    expect((await a.db.outbox.toArray())[0]!.attempts).toBe(5)
+    expect(a.engine.getStatus()).toMatchObject({
+      state: 'error',
+      pending: 1,
+      message: '1 cambios no se pudieron subir',
+    })
+  })
+
   it('el borrado lógico se propaga', async () => {
     const server = createFakeSupabase()
     const a = device(server)

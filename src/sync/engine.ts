@@ -31,6 +31,7 @@ export interface SyncEngineDeps {
 
 const PUSH_BATCH = 500
 const PULL_PAGE = 1000
+const MAX_ATTEMPTS = 5
 const BACKOFF_MS = [1, 2, 5, 10].map((m) => m * 60_000)
 const AUTH_MESSAGE =
   'Tu sesión venció; vuelve a iniciar sesión para sincronizar'
@@ -43,6 +44,20 @@ function isAuthError(err: unknown): boolean {
     e.status === 401 ||
     (typeof e.message === 'string' &&
       /jwt expired|invalid jwt/i.test(e.message))
+  )
+}
+
+/** El servidor rechazó los datos (RLS, check, FK...), no es red ni sesión. */
+function isRowError(err: unknown): boolean {
+  if (isAuthError(err) || typeof err !== 'object' || err === null) return false
+  const e = err as { code?: unknown; status?: unknown }
+  if (typeof e.code === 'string' && e.code !== '') return true
+  return (
+    typeof e.status === 'number' &&
+    e.status >= 400 &&
+    e.status < 500 &&
+    e.status !== 408 &&
+    e.status !== 429
   )
 }
 
@@ -94,7 +109,9 @@ export function createSyncEngine(deps: SyncEngineDeps) {
       } else groups.set(key, { last: e, seqs: [e.seq!] })
     }
     for (const table of TABLE_ORDER) {
-      const items = [...groups.values()].filter((g) => g.last.table === table)
+      const items = [...groups.values()].filter(
+        (g) => g.last.table === table && g.last.attempts < MAX_ATTEMPTS,
+      )
       for (let i = 0; i < items.length; i += PUSH_BATCH) {
         const batch = items.slice(i, i + PUSH_BATCH)
         // El servidor asigna updated_at (default en insert, trigger en update),
@@ -104,23 +121,43 @@ export function createSyncEngine(deps: SyncEngineDeps) {
           delete rest.updated_at
           return rest
         })
-        const { error } = await supabase
-          .from(table)
-          .upsert(rows, { onConflict: 'id' })
-        if (error) {
-          await db.transaction('rw', db.outbox, async () => {
-            await db.outbox
-              .where('seq')
-              .anyOf(batch.flatMap((g) => g.seqs))
-              .modify((e) => {
-                e.attempts += 1
-              })
-          })
-          throw error
+        const { error } = await upsertRows(table, rows)
+        if (!error) {
+          await db.outbox.bulkDelete(batch.flatMap((g) => g.seqs))
+          continue
         }
-        await db.outbox.bulkDelete(batch.flatMap((g) => g.seqs))
+        // Error de red o de sesión: aborta el push sin tocar `attempts`.
+        if (!isRowError(error)) throw error
+        // Una fila rechazada hace fallar todo el lote: reintenta una por una.
+        for (let j = 0; j < batch.length; j++) {
+          const single = await upsertRows(table, [rows[j]!])
+          if (!single.error) {
+            await db.outbox.bulkDelete(batch[j]!.seqs)
+            continue
+          }
+          if (!isRowError(single.error)) throw single.error
+          // Se queda en la outbox (nunca se borran datos del usuario).
+          await db.outbox
+            .where('seq')
+            .anyOf(batch[j]!.seqs)
+            .modify((e) => {
+              e.attempts += 1
+            })
+        }
       }
     }
+  }
+
+  /** Cambios que agotaron los reintentos automáticos (se conservan en la outbox). */
+  async function countStuck(): Promise<number> {
+    const last = new Map<string, OutboxEntry>()
+    for (const e of await db.outbox.orderBy('seq').toArray())
+      last.set(`${e.table}\u0000${e.row_id}`, e)
+    return [...last.values()].filter((e) => e.attempts >= MAX_ATTEMPTS).length
+  }
+
+  function upsertRows(table: SyncedTableName, rows: Partial<SyncedRow>[]) {
+    return supabase.from(table).upsert(rows, { onConflict: 'id' })
   }
 
   // --- Bajar ---------------------------------------------------------------
@@ -130,13 +167,18 @@ export function createSyncEngine(deps: SyncEngineDeps) {
       const state = await db.sync_state.get(table)
       const since = state?.last_pulled_at ?? null
       let maxSeen = since
-      for (let offset = 0; ; offset += PULL_PAGE) {
+      let cursor: { at: string; id: string } | null = null
+      for (;;) {
         let q = supabase.from(table).select('*').eq('user_id', userId)
-        if (since !== null) q = q.gte('updated_at', since)
+        if (cursor !== null)
+          q = q.or(
+            `updated_at.gt.${cursor.at},and(updated_at.eq.${cursor.at},id.gt.${cursor.id})`,
+          )
+        else if (since !== null) q = q.gte('updated_at', since)
         const { data, error } = await q
           .order('updated_at')
           .order('id')
-          .range(offset, offset + PULL_PAGE - 1)
+          .limit(PULL_PAGE)
         if (error) throw error
         const rows = (data ?? []) as SyncedRow[]
         if (rows.length > 0) {
@@ -161,6 +203,8 @@ export function createSyncEngine(deps: SyncEngineDeps) {
           }
         }
         if (rows.length < PULL_PAGE) break
+        const lastRow = rows[rows.length - 1]!
+        cursor = { at: lastRow.updated_at, id: lastRow.id }
       }
       await db.sync_state.put({ table, last_pulled_at: maxSeen })
     }
@@ -201,11 +245,12 @@ export function createSyncEngine(deps: SyncEngineDeps) {
       failures = 0
       retryAt = 0
       const pending = await db.outbox.count()
+      const stuck = await countStuck()
       setStatus({
-        state: pending > 0 ? 'pendiente' : 'sincronizado',
+        state: stuck > 0 ? 'error' : pending > 0 ? 'pendiente' : 'sincronizado',
         pending,
         lastSyncedAt: now(),
-        message: null,
+        message: stuck > 0 ? `${stuck} cambios no se pudieron subir` : null,
       })
     } catch (err) {
       failures += 1

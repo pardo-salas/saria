@@ -131,7 +131,7 @@ export function Graficas() {
   const first = balance[0]!
   const last = balance[balance.length - 1]!
   const navBtn =
-    'flex size-11 shrink-0 items-center justify-center rounded-full text-xl text-texto hover:bg-superficie-2 disabled:cursor-not-allowed disabled:opacity-40'
+    'flex size-11 min-h-11 min-w-11 shrink-0 items-center justify-center rounded-full text-3xl leading-none text-texto hover:bg-superficie-2 disabled:cursor-not-allowed disabled:opacity-40'
   const tableCell = 'py-1.5 text-right cifras'
 
   return (

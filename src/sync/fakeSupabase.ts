@@ -3,7 +3,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 type Row = Record<string, unknown> & { id: string; updated_at: string }
 type Result = {
   data: Row[] | null
-  error: { message: string; status?: number } | null
+  error: { message: string; status?: number; code?: string } | null
 }
 
 /**
@@ -20,6 +20,8 @@ export function createFakeSupabase() {
     /** Se ejecuta durante un upsert, antes de confirmarlo. */
     onUpsert: null as null | ((table: string, rows: Row[]) => Promise<void>),
     failWith: null as null | { message: string; status?: number },
+    /** Ids que el servidor rechaza (como un check/RLS/FK): falla todo el lote. */
+    rejectIds: new Set<string>(),
   }
   const serverNow = () =>
     new Date(Date.UTC(2026, 0, 1) + ++tick * 1000).toISOString()
@@ -35,6 +37,15 @@ export function createFakeSupabase() {
         void opts
         return (async (): Promise<Result> => {
           if (hooks.failWith) return { data: null, error: hooks.failWith }
+          if (rows.some((r) => hooks.rejectIds.has(r.id as string)))
+            return {
+              data: null,
+              error: {
+                message: 'violates check constraint',
+                status: 400,
+                code: '23514',
+              },
+            }
           upsertLog.push(table)
           if (hooks.onUpsert) await hooks.onUpsert(table, rows as Row[])
           const t = tableOf(table)
@@ -62,6 +73,25 @@ export function createFakeSupabase() {
           },
           gte(col: string, v: string) {
             filters.push((r) => (r[col] as string) >= v)
+            return b
+          },
+          or(expr: string) {
+            const m =
+              /^updated_at\.gt\.(.+),and\(updated_at\.eq\.(.+),id\.gt\.(.+)\)$/.exec(
+                expr,
+              )
+            if (!m) throw new Error('or() no soportado: ' + expr)
+            const gt = m[1]!
+            const eq = m[2]!
+            const id = m[3]!
+            filters.push(
+              (r) => r.updated_at > gt || (r.updated_at === eq && r.id > id),
+            )
+            return b
+          },
+          limit(n: number) {
+            first = 0
+            last = n - 1
             return b
           },
           order(col: string) {
