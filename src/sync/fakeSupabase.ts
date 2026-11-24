@@ -77,7 +77,7 @@ export function createFakeSupabase() {
           },
           or(expr: string) {
             const m =
-              /^updated_at\.gt\.(.+),and\(updated_at\.eq\.(.+),id\.gt\.(.+)\)$/.exec(
+              /^updated_at\.gt\."([^"]+)",and\(updated_at\.eq\."([^"]+)",id\.gt\."([^"]+)"\)$/.exec(
                 expr,
               )
             if (!m) throw new Error('or() no soportado: ' + expr)

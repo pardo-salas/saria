@@ -172,7 +172,9 @@ export function createSyncEngine(deps: SyncEngineDeps) {
         let q = supabase.from(table).select('*').eq('user_id', userId)
         if (cursor !== null)
           q = q.or(
-            `updated_at.gt.${cursor.at},and(updated_at.eq.${cursor.at},id.gt.${cursor.id})`,
+            // PostgREST exige comillas dobles para valores con . : , o
+            // paréntesis dentro de or(); las fechas ISO tienen . y :.
+            `updated_at.gt."${cursor.at}",and(updated_at.eq."${cursor.at}",id.gt."${cursor.id}")`,
           )
         else if (since !== null) q = q.gte('updated_at', since)
         const { data, error } = await q
