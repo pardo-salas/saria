@@ -19,7 +19,7 @@ test('con sesión se navega por las 5 pestañas', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Hola, Brian' })).toBeVisible()
 
   for (const name of ['Movimientos', 'Cuentas', 'Gráficas', 'Más']) {
-    await nav.getByRole('link', { name }).click()
+    await nav.getByRole('link', { name, exact: true }).click()
     await expect(page.getByRole('heading', { level: 1, name })).toBeVisible()
   }
 
@@ -41,7 +41,7 @@ test('abre sin conexión tras la primera visita', async ({ page, context }) => {
 
   await context.setOffline(true)
   await page.goto('/cuentas')
-  await expect(page.getByRole('heading', { name: 'Cuentas' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Cuentas', exact: true })).toBeVisible()
   await page.reload()
-  await expect(page.getByRole('heading', { name: 'Cuentas' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Cuentas', exact: true })).toBeVisible()
 })
