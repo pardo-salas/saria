@@ -50,7 +50,7 @@ describe.skipIf(!ruta)('importador del Excel', () => {
         Math.abs(prog.remainingCents - e.quedaCents),
         e.concepto,
       ).toBeLessThanOrEqual(1)
-      expect(cuentas.has(p.account_id!)).toBe(true)
+      if (e.concepto !== 'Casa') expect(cuentas.has(p.account_id!)).toBe(true)
     }
     expect(r.archivo.account_updates).toHaveLength(9)
     for (const u of r.archivo.account_updates)
@@ -74,5 +74,6 @@ describe.skipIf(!ruta)('importador del Excel', () => {
       [...esperados].sort(),
     )
     expect(r.archivo.retag).toHaveLength(5)
+    // Casa: sin cuenta y en pausa (la hipoteca sale de la nómina).    const casa = planes.find((x) => x.concept === 'Casa')!    expect(casa).toMatchObject({ account_id: null, active: false, monthly_cents: 189904 })    expect(planes.find((x) => x.concept === 'Moto')!.monthly_cents).toBe(216600)    // Próximo cargo real: día del recordatorio de Money Manager tras el respaldo.    const proximo = (c: string) =>      planProgress(planes.find((x) => x.concept === c)!, []).nextChargeDate    expect({      Switch: proximo('Switch'),      Reloj: proximo('Reloj'),      'Litera escritorio': proximo('Litera escritorio'),      TLOZ: proximo('TLOZ'),      'Laptop de karina': proximo('Laptop de karina'),    }).toEqual({      Switch: '2026-11-25',      Reloj: '2026-12-13',      'Litera escritorio': '2026-11-23',      TLOZ: '2026-12-14',      'Laptop de karina': '2026-11-23',    })
   })
 })

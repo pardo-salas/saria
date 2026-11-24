@@ -73,15 +73,25 @@ export function planProgress(
 /** Σ `monthly_cents` de los planes vivos (activos o ya terminados) con un cargo en `month` (YYYY-MM). */
 export function monthlyCommitmentCents(
   plans: InstallmentPlan[],
-  _txs: Transaction[],
+  txs: Transaction[],
   month: string,
 ): number {
   let total = 0
   for (const p of plans) {
     if (p.deleted_at !== null) continue
+    // Un plan inactivo (terminado o en pausa, como una hipoteca por nómina)
+    // solo compromete el mes si ya tiene ahí un movimiento ligado.
+    const hasLinked = () =>
+      txs.some(
+        (t) =>
+          t.deleted_at === null &&
+          t.installment_plan_id === p.id &&
+          t.date.slice(0, 7) === month,
+      )
     for (let n = 1; n <= p.months; n++) {
       const d = chargeDate(p, n)
       if (d.slice(0, 7) === month) {
+        if (!p.active && !hasLinked()) break
         total += p.monthly_cents
         break
       }

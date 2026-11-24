@@ -134,8 +134,15 @@ describe('monthlyCommitmentCents', () => {
         deleted_at: 'x',
       }),
     ]
-    // Noviembre: a, b y d (inactivo pero con cargo en el mes); c terminó en abril.
-    expect(monthlyCommitmentCents(plans, [], '2026-11')).toBe(1100)
+    // Noviembre: a y b; d está inactivo sin movimiento ligado (en pausa) y c terminó en abril.
+    expect(monthlyCommitmentCents(plans, [], '2026-11')).toBe(300)
+    // Un plan inactivo sí cuenta si ya tiene su movimiento del mes.
+    const linked = {
+      installment_plan_id: 'd',
+      date: '2026-11-11',
+      deleted_at: null,
+    } as Transaction
+    expect(monthlyCommitmentCents(plans, [linked], '2026-11')).toBe(1100)
     // Septiembre: nadie tiene cargo (los cargos empiezan un mes después).
     expect(monthlyCommitmentCents(plans, [], '2026-09')).toBe(0)
   })

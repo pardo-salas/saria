@@ -110,6 +110,32 @@ export async function construirExcel(rutaMm, rutaExcel, opciones = {}) {
     return p
   }
 
+  const recordatorios = leerRecordatorios(rutaMm)
+  /**
+   * Compra que Money Manager también recuerda: el próximo cargo real es la
+   * primera fecha posterior al respaldo con el día del recordatorio, sin mirar
+   * su fecha final; la fecha de compra se calcula hacia atrás para que
+   * chargeDate(plan, pagados + 1) caiga exactamente ahí.
+   */
+  const compraDesdeCobro = (titulo, pagados) => {
+    const r = recordatorios.find((x) => x.title === titulo)
+    if (!r) throw new Error(`No se encontró "${titulo}" en Money Manager`)
+    const dia = Number(r.startDate.slice(8, 10))
+    const [a, m] = fechaRespaldo.split('-').map(Number)
+    let proximo = null
+    for (let i = 0; i < 3 && proximo === null; i++) {
+      const t = a * 12 + (m - 1) + i
+      const y = Math.floor(t / 12)
+      const mes = (t % 12) + 1
+      const c = ymd(y, mes, Math.min(dia, diasEnMes(y, mes)))
+      if (c > fechaRespaldo) proximo = c
+    }
+    const compra = sumarMeses(proximo, -(pagados + 1))
+    if (sumarMeses(compra, pagados + 1) !== proximo)
+      throw new Error(`No se pudo fijar el próximo cargo de "${titulo}"`)
+    return compra
+  }
+
   const planes = []
   const retag = []
   const plan = (id, datos) => ({
@@ -119,9 +145,9 @@ export async function construirExcel(rutaMm, rutaExcel, opciones = {}) {
     purchase_date: datos.purchase_date,
     total_cents: datos.total_cents,
     months: datos.months,
-    monthly_cents: Math.round(datos.total_cents / datos.months),
+    monthly_cents: datos.monthly_cents,
     paid_months: datos.paid_months,
-    active: datos.paid_months < datos.months,
+    active: datos.active ?? datos.paid_months < datos.months,
     category_id: datos.category_id,
   })
 
@@ -143,10 +169,17 @@ export async function construirExcel(rutaMm, rutaExcel, opciones = {}) {
     else if (CATEGORIA_PROPIA[concepto])
       categoria = categoriaGasto.get(CATEGORIA_PROPIA[concepto])?.id
     if (!categoria) throw new Error(`Sin categoría para "${concepto}"`)
+    const pagados = meses - restantes
+    const casa = concepto === 'Casa'
     const p = plan(await uuidV5(`excel-plan:${concepto}`), {
       concept: concepto,
-      account_id: cuenta(nombreCuenta).id,
-      purchase_date: fechaDeSerial(hoja.get(`C${r}`)),
+      // La hipoteca se descuenta de la nómina: sin cuenta y en pausa.
+      account_id: casa ? null : cuenta(nombreCuenta).id,
+      active: casa ? false : undefined,
+      purchase_date: RECORDATORIO_DE[concepto]
+        ? compraDesdeCobro(RECORDATORIO_DE[concepto], pagados)
+        : fechaDeSerial(hoja.get(`C${r}`)),
+      monthly_cents: centavos(hoja.get(`D${r}`)),
       total_cents: centavos(hoja.get(`I${r}`)),
       months: meses,
       paid_months: meses - restantes,
@@ -167,7 +200,7 @@ export async function construirExcel(rutaMm, rutaExcel, opciones = {}) {
   }
 
   // Laptop de karina: solo está en el recordatorio de Money Manager.
-  const laptop = leerRecordatorios(rutaMm).find((r) => r.title === LAPTOP)
+  const laptop = recordatorios.find((r) => r.title === LAPTOP)
   if (!laptop) throw new Error(`No se encontró "${LAPTOP}" en Money Manager`)
   const compra = sumarMeses(laptop.startDate, -1)
   let cargos = 0
@@ -181,7 +214,8 @@ export async function construirExcel(rutaMm, rutaExcel, opciones = {}) {
   const laptopPlan = plan(await uuidV5(`mm-plan:${laptop.uid}`), {
     concept: LAPTOP,
     account_id: pagoMm(LAPTOP).account_id,
-    purchase_date: compra,
+    purchase_date: compraDesdeCobro(LAPTOP, pagados),
+    monthly_cents: laptop.amount,
     total_cents: laptop.amount * cargos,
     months: cargos,
     paid_months: pagados,
@@ -279,11 +313,13 @@ async function main() {
   for (const p of planes) {
     const restantes = p.months - p.paid_months
     const acumulado =
-      restantes === 0 ? p.total_cents : p.paid_months * p.monthly_cents
+      restantes === 0
+        ? p.total_cents
+        : p.paid_months * Math.round(p.total_cents / p.months)
     const siguiente =
       restantes === 0 ? '—' : sumarMeses(p.purchase_date, p.paid_months + 1)
     console.log(
-      `  ${p.concept.padEnd(18)} ${String(p.paid_months).padStart(2)}/${String(p.months).padEnd(3)} pago real ${pesos(p.monthly_cents).padStart(12)}  queda ${pesos(p.total_cents - acumulado).padStart(14)}  próximo: ${siguiente}${p.active ? '' : '  (inactiva)'}  [${nombreCuenta.get(p.account_id)}]`,
+      `  ${p.concept.padEnd(18)} ${String(p.paid_months).padStart(2)}/${String(p.months).padEnd(3)} pago real ${pesos(p.monthly_cents).padStart(12)}  queda ${pesos(p.total_cents - acumulado).padStart(14)}  próximo: ${siguiente}${p.active ? '' : '  (inactiva)'}  [${nombreCuenta.get(p.account_id) ?? 'sin cuenta'}]`,
     )
   }
   console.log(`\nActualizaciones de cuenta: ${cuentas.length}\n`)
