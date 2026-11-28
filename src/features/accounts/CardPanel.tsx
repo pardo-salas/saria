@@ -84,12 +84,33 @@ export function CardPanel({
         )}
         <div className="flex min-h-11 items-baseline justify-between gap-4 py-2">
           <dt className="text-texto-suave">
-            Pagar antes del {formatShortDate(status.nextPaymentDate)}
+            {status.pendingPaymentCents > 0
+              ? `Falta pagar antes del ${formatShortDate(status.nextPaymentDate)}`
+              : 'Pago del periodo'}
           </dt>
-          <dd className="font-semibold cifras">
-            {formatCents(status.nextPaymentCents)}
+          <dd
+            className={`font-semibold cifras ${status.pendingPaymentCents > 0 ? '' : 'text-agua'}`}
+          >
+            {status.pendingPaymentCents > 0
+              ? formatCents(status.pendingPaymentCents)
+              : status.nextPaymentCents > 0
+                ? 'Pagado'
+                : 'Sin pago'}
           </dd>
         </div>
+        {status.nextPaymentCents > 0 && status.paidSinceCutCents > 0 && (
+          <div className="flex min-h-11 items-baseline justify-between gap-4 py-2">
+            <dt className="text-texto-suave">
+              Pago del periodo · abonado desde el corte
+            </dt>
+            <dd className="font-medium cifras">
+              {formatCents(status.nextPaymentCents)} ·{' '}
+              {formatCents(
+                Math.min(status.paidSinceCutCents, status.nextPaymentCents),
+              )}
+            </dd>
+          </div>
+        )}
         <div className="flex min-h-11 items-baseline justify-between gap-4 py-2">
           <dt className="text-texto-suave">
             Gastado desde el corte del {formatShortDate(status.lastCut)}
