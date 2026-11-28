@@ -4,6 +4,7 @@ import { useSessionContext } from '../app/SessionProvider'
 import { balancesByAccount } from '../domain/balances'
 import { localDate } from '../domain/dates'
 import { buildFeed, type FeedEntry } from '../domain/feed'
+import { pendingInstallmentsByAccount } from '../domain/installments'
 import type { Lookups } from '../domain/search'
 import { db } from './dexie'
 import type {
@@ -118,4 +119,17 @@ export function useFinance(): FinanceData | undefined {
       },
     }
   }, [accounts, categories, transactions, transfers])
+}
+
+/** Por cuenta: lo que falta cobrar de sus compras a meses activas; `undefined` al cargar. */
+export function usePendingInstallments(): Map<string, number> | undefined {
+  const plans = useLiveRows('installment_plans')
+  const transactions = useLiveRows('transactions')
+  return useMemo(
+    () =>
+      plans && transactions
+        ? pendingInstallmentsByAccount(plans, transactions)
+        : undefined,
+    [plans, transactions],
+  )
 }

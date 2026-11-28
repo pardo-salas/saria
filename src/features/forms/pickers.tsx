@@ -1,7 +1,10 @@
 import { useEffect, useId, useRef } from 'react'
 import type { ReactNode } from 'react'
+import { useFinance, usePendingInstallments } from '../../db/queries'
 import type { Account, Category } from '../../db/schema'
+import { creditUse } from '../../domain/cards'
 import { ICON_NAMES, PALETTE, type IconName } from '../../domain/catalog'
+import { formatCents } from '../../domain/money'
 import { AppIcon } from '../../ui/AppIcon'
 import { Button } from '../../ui/Button'
 
@@ -85,14 +88,96 @@ export function selectableAccounts(
     .sort((a, b) => a.position - b.position)
 }
 
+/**
+ * Cuánto tiene la cuenta elegida; en tarjetas, la deuda y el disponible
+ * (descontando lo que falta de sus compras a meses).
+ */
+export function AccountFunds({ accountId }: { accountId: string | null }) {
+  const finance = useFinance()
+  const pending = usePendingInstallments()
+  const account = accountId ? finance?.lookups.accounts.get(accountId) : null
+  if (!finance || !account) return null
+  const balance = finance.balances.get(account.id) ?? 0
+  const use =
+    account.type === 'credit'
+      ? creditUse(
+          account.credit_limit_cents,
+          balance,
+          pending?.get(account.id) ?? 0,
+        )
+      : null
+  return (
+    <p aria-live="polite" className="mt-2 text-sm text-texto-suave">
+      {account.type === 'credit' ? (
+        <>
+          {account.name}: debes{' '}
+          <span className="font-semibold text-texto cifras">
+            {formatCents(Math.max(0, -balance))}
+          </span>
+          {use && (
+            <>
+              {' · '}disponible{' '}
+              <span
+                className={`font-semibold cifras ${use.availableCents < 0 ? 'text-gasto' : 'text-texto'}`}
+              >
+                {formatCents(use.availableCents)}
+              </span>
+              <span className="cifras"> ({use.usedPercent}% ocupado)</span>
+            </>
+          )}
+        </>
+      ) : (
+        <>
+          {account.name} tiene{' '}
+          <span
+            className={`font-semibold cifras ${balance < 0 ? 'text-gasto' : 'text-texto'}`}
+          >
+            {formatCents(balance)}
+          </span>
+        </>
+      )}
+    </p>
+  )
+}
+
 export function AccountPicker({
   label = 'Cuenta',
   accounts,
   value,
   onChange,
   error,
+  showFunds = true,
 }: {
   label?: string
+  accounts: Account[]
+  value: string | null
+  onChange(id: string): void
+  error?: string
+  /** Muestra bajo las fichas cuánto tiene la cuenta elegida. */
+  showFunds?: boolean
+}) {
+  return (
+    <div>
+      <AccountChips
+        label={label}
+        accounts={accounts}
+        value={value}
+        onChange={onChange}
+        error={error}
+      />
+      {showFunds && <AccountFunds accountId={value} />}
+    </div>
+  )
+}
+
+function AccountChips({
+  label,
+  accounts,
+  value,
+  onChange,
+  error,
+}: {
+  label: string
   accounts: Account[]
   value: string | null
   onChange(id: string): void

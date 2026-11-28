@@ -28,6 +28,10 @@ export function Chip({ label, selected, onClick, onRemove, icon }: ChipProps) {
     </>
   )
   const shape = `inline-flex min-h-11 max-w-full items-center gap-1.5 text-sm font-medium ${tone}`
+  const left = icon ? 'pl-2' : 'pl-4'
+  const pad = onRemove
+    ? `rounded-l-full pr-2 ${left}`
+    : `rounded-full pr-4 ${left}`
 
   return (
     <span className="inline-flex max-w-full">
@@ -36,16 +40,12 @@ export function Chip({ label, selected, onClick, onRemove, icon }: ChipProps) {
           type="button"
           aria-pressed={selected ?? false}
           onClick={onClick}
-          className={`${shape} cursor-pointer ${onRemove ? 'rounded-l-full pr-2 pl-4' : 'rounded-full px-4'}`}
+          className={`${shape} cursor-pointer ${pad}`}
         >
           {body}
         </button>
       ) : (
-        <span
-          className={`${shape} ${onRemove ? 'rounded-l-full pr-2 pl-4' : 'rounded-full px-4'}`}
-        >
-          {body}
-        </span>
+        <span className={`${shape} ${pad}`}>{body}</span>
       )}
       {onRemove && (
         <button

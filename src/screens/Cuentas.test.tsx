@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { db } from '@/db/dexie'
@@ -54,5 +55,37 @@ describe('Cuentas', () => {
     expect(screen.getAllByText(/fuera del total/).length).toBeGreaterThan(0)
     expect(screen.getByText('Efectivo y débito')).toBeInTheDocument()
     expect(screen.queryByText(/Archivadas/)).not.toBeInTheDocument()
+  })
+})
+
+describe('Cuentas: grupos plegables', () => {
+  it('pliega un grupo, lo recuerda y muestra el % ocupado de la tarjeta', async () => {
+    localStorage.clear()
+    await db.accounts.bulkPut([
+      acct({ id: 'nu', name: 'NU' }),
+      acct({
+        id: 'bb',
+        name: 'BBVA Crédito',
+        type: 'credit',
+        initial_balance_cents: -250000,
+        credit_limit_cents: 1000000,
+      }),
+    ])
+    const ui = (
+      <Providers>
+        <MemoryRouter>
+          <Cuentas />
+        </MemoryRouter>
+      </Providers>
+    )
+    const { unmount } = render(ui)
+    expect(await screen.findByText(/25% ocupado/)).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: /Crédito/ }))
+    expect(screen.queryByText('BBVA Crédito')).not.toBeInTheDocument()
+    expect(screen.getByText('NU')).toBeInTheDocument()
+    unmount()
+    render(ui)
+    expect(await screen.findByText('NU')).toBeInTheDocument()
+    expect(screen.queryByText('BBVA Crédito')).not.toBeInTheDocument()
   })
 })

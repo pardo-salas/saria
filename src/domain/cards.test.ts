@@ -1,5 +1,5 @@
 import type { Account, Transaction } from '../db/schema'
-import { cardStatus } from './cards'
+import { cardStatus, creditUse } from './cards'
 
 function card(over: Partial<Account>): Account {
   return {
@@ -110,5 +110,26 @@ describe('cardStatus', () => {
     expect(
       cardStatus(card({ credit_limit_cents: null }), () => 0, [], '2026-11-05'),
     ).toBeNull()
+  })
+})
+
+describe('creditUse', () => {
+  it('lo pendiente a meses también ocupa la línea', () => {
+    // Línea 10,000; deuda 2,000; faltan 3,000 a meses.
+    expect(creditUse(1_000_000, -200_000, 300_000)).toEqual({
+      availableCents: 500_000,
+      usedPercent: 50,
+    })
+  })
+
+  it('sin línea no hay uso', () => {
+    expect(creditUse(null, -100, 0)).toBeNull()
+  })
+
+  it('cardStatus descuenta lo pendiente a meses del disponible', () => {
+    const s = cardStatus(card({}), () => -100_000, [], '2026-11-05', 250_000)!
+    expect(s.availableCents).toBe(650_000)
+    expect(s.usedPercent).toBe(35)
+    expect(s.installmentsPendingCents).toBe(250_000)
   })
 })

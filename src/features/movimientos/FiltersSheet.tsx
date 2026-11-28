@@ -1,5 +1,7 @@
 import type { Account, Category } from '@/db/schema'
+import type { IconName } from '@/domain/catalog'
 import type { EntryKind, FeedFilters } from '@/domain/search'
+import { AppIcon } from '@/ui/AppIcon'
 import { DateField } from '@/features/forms/pickers'
 import { Button } from '@/ui/Button'
 import { Chip } from '@/ui/Chip'
@@ -76,6 +78,13 @@ export function FiltersSheet({
           <Chip
             key={a.id}
             label={a.name}
+            icon={
+              <AppIcon
+                name={a.icon as IconName | null}
+                color={a.color}
+                size="sm"
+              />
+            }
             selected={filters.accountIds.includes(a.id)}
             onClick={() =>
               onChange({
@@ -91,6 +100,13 @@ export function FiltersSheet({
           <Chip
             key={c.id}
             label={c.name}
+            icon={
+              <AppIcon
+                name={c.icon as IconName | null}
+                color={c.color}
+                size="sm"
+              />
+            }
             selected={filters.categoryIds.includes(c.id)}
             onClick={() =>
               onChange({

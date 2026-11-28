@@ -1,3 +1,4 @@
+import { usePendingInstallments } from '@/db/queries'
 import type { Account, Transaction, Transfer } from '@/db/schema'
 import { balancesByAccount } from '@/domain/balances'
 import { cardStatus } from '@/domain/cards'
@@ -23,7 +24,8 @@ export function CardPanel({
       transactions.filter((t) => t.date <= date),
       transfers.filter((t) => t.date <= date),
     ).get(account.id) ?? 0
-  const status = cardStatus(account, balanceAt, transactions, today)
+  const pending = usePendingInstallments()?.get(account.id) ?? 0
+  const status = cardStatus(account, balanceAt, transactions, today, pending)
 
   if (!status) {
     return (
@@ -65,9 +67,21 @@ export function CardPanel({
         />
       </div>
       <p className="mt-1 text-sm text-texto-suave cifras">
-        {status.usedPercent}% usado
+        <span className="font-semibold text-texto">
+          {status.usedPercent}% ocupado
+        </span>
+        {status.installmentsPendingCents > 0 &&
+          ' · incluye lo que falta de tus compras a meses'}
       </p>
       <dl className="mt-3 divide-y divide-superficie-2">
+        {status.installmentsPendingCents > 0 && (
+          <div className="flex min-h-11 items-baseline justify-between gap-4 py-2">
+            <dt className="text-texto-suave">Por cobrar a meses</dt>
+            <dd className="font-medium cifras">
+              {formatCents(status.installmentsPendingCents)}
+            </dd>
+          </div>
+        )}
         <div className="flex min-h-11 items-baseline justify-between gap-4 py-2">
           <dt className="text-texto-suave">
             Pagar antes del {formatShortDate(status.nextPaymentDate)}

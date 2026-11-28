@@ -8,8 +8,34 @@ export interface CardStatus {
   periodSpentCents: number
   nextPaymentCents: number
   nextPaymentDate: string
+  /** Lo que aún falta cobrar de las compras a meses de la tarjeta. */
+  installmentsPendingCents: number
   availableCents: number
   usedPercent: number
+}
+
+export interface CreditUse {
+  availableCents: number
+  usedPercent: number
+}
+
+/**
+ * Disponible y porcentaje ocupado de una línea de crédito: la deuda actual más
+ * lo que falta por cobrar de las compras a meses también ocupa la línea.
+ * `null` si la cuenta no tiene línea.
+ */
+export function creditUse(
+  limitCents: number | null,
+  balanceCents: number,
+  installmentsPendingCents = 0,
+): CreditUse | null {
+  if (limitCents === null) return null
+  const occupied = Math.max(0, -balanceCents) + installmentsPendingCents
+  return {
+    availableCents: limitCents + balanceCents - installmentsPendingCents,
+    // El porcentaje no es dinero: la división flotante es válida.
+    usedPercent: limitCents > 0 ? Math.round((occupied * 100) / limitCents) : 0,
+  }
 }
 
 function monthOf(date: string): [number, number] {
@@ -30,6 +56,7 @@ export function cardStatus(
   balanceAt: (date: string) => number,
   txs: Transaction[],
   today: string,
+  installmentsPendingCents = 0,
 ): CardStatus | null {
   const { credit_limit_cents: limit, statement_day, due_day } = account
   if (limit === null || statement_day === null || due_day === null) return null
@@ -60,15 +87,13 @@ export function cardStatus(
       periodSpentCents += t.amount_cents
   }
 
-  const balance = balanceAt(today)
-  const debt = Math.max(0, -balance)
+  const use = creditUse(limit, balanceAt(today), installmentsPendingCents)!
   return {
     lastCut,
     periodSpentCents,
     nextPaymentCents: Math.max(0, -balanceAt(lastCut)),
     nextPaymentDate,
-    availableCents: limit + balance,
-    // El porcentaje no es dinero: la división flotante es válida.
-    usedPercent: limit > 0 ? Math.round((debt * 100) / limit) : 0,
+    installmentsPendingCents,
+    ...use,
   }
 }

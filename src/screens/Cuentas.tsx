@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { Link } from 'react-router'
-import { useFinance } from '@/db/queries'
+import { useFinance, usePendingInstallments } from '@/db/queries'
 import type { Account } from '@/db/schema'
 import { accountsBreakdown, type AccountGroup } from '@/domain/balances'
+import { creditUse } from '@/domain/cards'
 import type { IconName } from '@/domain/catalog'
 import { formatCents, sumCents } from '@/domain/money'
 import { monthlyYieldCents } from '@/domain/yields'
@@ -29,12 +30,16 @@ const GROUP_LABEL: Record<AccountGroup, string> = {
 export function AccountLink({
   account,
   cents,
+  usedPercent = null,
 }: {
   account: Account
   cents: number
+  /** Solo tarjetas con línea: porcentaje ocupado. */
+  usedPercent?: number | null
 }) {
   const detail = [
     account.institution ?? TYPE_LABEL[account.type],
+    usedPercent === null ? null : `${usedPercent}% ocupado`,
     account.include_in_total ? null : 'fuera del total',
   ].filter(Boolean)
   return (
@@ -62,11 +67,57 @@ export function AccountLink({
   )
 }
 
+const COLLAPSED_KEY = 'saria:cuentas-plegadas'
+
+function readCollapsed(): AccountGroup[] {
+  try {
+    const raw = localStorage.getItem(COLLAPSED_KEY)
+    const parsed: unknown = raw ? JSON.parse(raw) : []
+    return Array.isArray(parsed)
+      ? parsed.filter(
+          (g): g is AccountGroup => typeof g === 'string' && g in GROUP_LABEL,
+        )
+      : []
+  } catch {
+    return []
+  }
+}
+
+/** Grupos que el usuario plegó; se recuerdan en este dispositivo. */
+function useCollapsedGroups() {
+  const [collapsed, setCollapsed] = useState<AccountGroup[]>(readCollapsed)
+  function toggle(group: AccountGroup) {
+    setCollapsed((prev) => {
+      const next = prev.includes(group)
+        ? prev.filter((g) => g !== group)
+        : [...prev, group]
+      try {
+        localStorage.setItem(COLLAPSED_KEY, JSON.stringify(next))
+      } catch {
+        // Sin almacenamiento solo se pierde el recuerdo.
+      }
+      return next
+    })
+  }
+  return [collapsed, toggle] as const
+}
+
 export function Cuentas() {
   const finance = useFinance()
+  const pending = usePendingInstallments()
   const [creating, setCreating] = useState(false)
+  const [collapsed, toggleGroup] = useCollapsedGroups()
 
   if (!finance) return <TabScreen title="Cuentas">{null}</TabScreen>
+
+  const usedPercent = (a: Account) =>
+    a.type === 'credit'
+      ? (creditUse(
+          a.credit_limit_cents,
+          finance.balances.get(a.id) ?? 0,
+          pending?.get(a.id) ?? 0,
+        )?.usedPercent ?? null)
+      : null
 
   const breakdown = accountsBreakdown(finance.accounts, finance.balances)
   const archivedCount = finance.accounts.filter((a) => a.archived).length
@@ -126,27 +177,57 @@ export function Cuentas() {
             )}
           </section>
 
-          {breakdown.groups.map((g) => (
-            <section key={g.group} className="mt-6">
-              <div className="flex items-baseline justify-between">
-                <h2 className="text-sm font-semibold">
-                  {GROUP_LABEL[g.group]}
+          {breakdown.groups.map((g) => {
+            const open = !collapsed.includes(g.group)
+            const listId = `cuentas-${g.group}`
+            return (
+              <section key={g.group} className="mt-4">
+                <h2>
+                  <button
+                    type="button"
+                    aria-expanded={open}
+                    aria-controls={listId}
+                    onClick={() => toggleGroup(g.group)}
+                    className="-mx-2 flex min-h-11 w-[calc(100%+1rem)] items-center gap-2 rounded-boton px-2 text-left transition-colors duration-150 hover:bg-superficie-2/60 active:bg-superficie-2"
+                  >
+                    <svg
+                      viewBox="0 0 24 24"
+                      aria-hidden="true"
+                      className={`size-4 shrink-0 text-texto-suave transition-transform duration-150 ${open ? 'rotate-90' : ''}`}
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="m9 6 6 6-6 6" />
+                    </svg>
+                    <span className="text-sm font-semibold">
+                      {GROUP_LABEL[g.group]}
+                    </span>
+                    <span className="flex-1 text-sm text-texto-suave cifras">
+                      {`· ${g.accounts.length}`}
+                    </span>
+                    <span className="text-sm text-texto-suave cifras">
+                      {formatCents(g.subtotalCents)}
+                    </span>
+                  </button>
                 </h2>
-                <span className="text-sm text-texto-suave cifras">
-                  {formatCents(g.subtotalCents)}
-                </span>
-              </div>
-              <ul className="mt-1 flex flex-col">
-                {g.accounts.map((a) => (
-                  <AccountLink
-                    key={a.id}
-                    account={a}
-                    cents={finance.balances.get(a.id) ?? 0}
-                  />
-                ))}
-              </ul>
-            </section>
-          ))}
+                {open && (
+                  <ul id={listId} className="flex flex-col">
+                    {g.accounts.map((a) => (
+                      <AccountLink
+                        key={a.id}
+                        account={a}
+                        cents={finance.balances.get(a.id) ?? 0}
+                        usedPercent={usedPercent(a)}
+                      />
+                    ))}
+                  </ul>
+                )}
+              </section>
+            )
+          })}
 
           <div className="mt-6 flex flex-col gap-3">
             <Button variant="secundaria" onClick={() => setCreating(true)}>
