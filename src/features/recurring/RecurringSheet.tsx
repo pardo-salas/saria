@@ -236,6 +236,7 @@ function RecurringForm({
           accounts={accounts}
           value={accountId}
           onChange={setAccountId}
+          showFunds={false}
         />
         {accountId !== null && (
           <button

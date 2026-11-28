@@ -100,3 +100,21 @@ export function monthlyCommitmentCents(
   }
   return total
 }
+
+/**
+ * Por cuenta: lo que falta cobrar de sus compras a meses activas. Los planes
+ * en pausa (como una hipoteca por nómina) no ocupan la línea.
+ */
+export function pendingInstallmentsByAccount(
+  plans: InstallmentPlan[],
+  txs: Transaction[],
+): Map<string, number> {
+  const out = new Map<string, number>()
+  for (const p of plans) {
+    if (p.deleted_at !== null || !p.active || p.account_id === null) continue
+    const { remainingCents } = planProgress(p, txs)
+    if (remainingCents > 0)
+      out.set(p.account_id, (out.get(p.account_id) ?? 0) + remainingCents)
+  }
+  return out
+}

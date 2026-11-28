@@ -9,6 +9,7 @@ import { categoriesByUsage, defaultAccountId } from '@/domain/usage'
 import { validateTransaction, validateTransfer } from '@/domain/validate'
 import { AccountSheet } from '@/features/forms/AccountSheet'
 import {
+  AccountFunds,
   AccountPicker,
   DateField,
   FieldError,
@@ -335,6 +336,7 @@ function QuickForm({
               onClick={() => togglePanel('note')}
             />
           </div>
+          {panel !== 'account' && <AccountFunds accountId={shownAccount} />}
           {panel === 'account' && (
             <AccountPicker
               accounts={accounts}

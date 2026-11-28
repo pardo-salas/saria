@@ -2,6 +2,7 @@ import type { InstallmentPlan, Transaction } from '../db/schema'
 import {
   chargeDate,
   monthlyCommitmentCents,
+  pendingInstallmentsByAccount,
   planProgress,
 } from './installments'
 
@@ -145,5 +146,22 @@ describe('monthlyCommitmentCents', () => {
     expect(monthlyCommitmentCents(plans, [linked], '2026-11')).toBe(1100)
     // Septiembre: nadie tiene cargo (los cargos empiezan un mes después).
     expect(monthlyCommitmentCents(plans, [], '2026-09')).toBe(0)
+  })
+})
+
+describe('pendingInstallmentsByAccount', () => {
+  it('suma lo que falta por cuenta; ignora pausados, sin cuenta y borrados', () => {
+    const plans = [
+      plan({ id: 'a', paid_months: 4 }), // faltan 60,000
+      plan({ id: 'b', total_cents: 30000, months: 3, monthly_cents: 10000 }),
+      plan({ id: 'c', active: false }),
+      plan({ id: 'd', account_id: null }),
+      plan({ id: 'e', deleted_at: 'x' }),
+      plan({ id: 'f', account_id: 'a2', paid_months: 10 }), // terminado
+    ]
+    const txs = [{ installment_plan_id: 'b', deleted_at: null } as Transaction]
+    const m = pendingInstallmentsByAccount(plans, txs)
+    expect(m.get('a1')).toBe(60000 + 20000)
+    expect(m.has('a2')).toBe(false)
   })
 })
