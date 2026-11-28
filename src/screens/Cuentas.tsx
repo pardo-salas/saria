@@ -1,10 +1,15 @@
 import { useState } from 'react'
 import { Link } from 'react-router'
-import { useFinance, usePendingInstallments } from '@/db/queries'
+import { useFinance, usePendingInstallments, useToday } from '@/db/queries'
 import type { Account } from '@/db/schema'
-import { accountsBreakdown, type AccountGroup } from '@/domain/balances'
-import { creditUse } from '@/domain/cards'
+import {
+  accountsBreakdown,
+  balancesByAccount,
+  type AccountGroup,
+} from '@/domain/balances'
+import { cardStatus, creditUse } from '@/domain/cards'
 import type { IconName } from '@/domain/catalog'
+import { formatShortDate } from '@/domain/dates'
 import { formatCents, sumCents } from '@/domain/money'
 import { monthlyYieldCents } from '@/domain/yields'
 import { AccountSheet } from '@/features/forms/AccountSheet'
@@ -26,20 +31,26 @@ const GROUP_LABEL: Record<AccountGroup, string> = {
   investment: 'Inversión',
 }
 
+export interface CreditSummary {
+  usedPercent: number | null
+  /** `null` si a la tarjeta le faltan día de corte o de pago. */
+  payment: { pendingCents: number; date: string } | null
+}
+
 /** Renglón de cuenta que lleva a su detalle. */
 export function AccountLink({
   account,
   cents,
-  usedPercent = null,
+  credit = null,
 }: {
   account: Account
   cents: number
-  /** Solo tarjetas con línea: porcentaje ocupado. */
-  usedPercent?: number | null
+  /** Solo tarjetas: % ocupado y lo que falta pagar del periodo. */
+  credit?: CreditSummary | null
 }) {
   const detail = [
     account.institution ?? TYPE_LABEL[account.type],
-    usedPercent === null ? null : `${usedPercent}% ocupado`,
+    credit?.usedPercent == null ? null : `${credit.usedPercent}% ocupado`,
     account.include_in_total ? null : 'fuera del total',
   ].filter(Boolean)
   return (
@@ -57,10 +68,19 @@ export function AccountLink({
             {detail.join(' · ')}
           </span>
         </span>
-        <span
-          className={`shrink-0 text-base font-semibold cifras ${cents < 0 ? 'text-gasto' : ''}`}
-        >
-          {formatCents(cents)}
+        <span className="shrink-0 text-right">
+          <span
+            className={`block text-base leading-snug font-semibold cifras ${cents < 0 ? 'text-gasto' : ''}`}
+          >
+            {formatCents(cents)}
+          </span>
+          {credit?.payment && (
+            <span className="block text-sm leading-snug text-texto-suave cifras">
+              {credit.payment.pendingCents > 0
+                ? `Por pagar ${formatCents(credit.payment.pendingCents)} · ${formatShortDate(credit.payment.date)}`
+                : 'Periodo pagado'}
+            </span>
+          )}
         </span>
       </Link>
     </li>
@@ -105,19 +125,49 @@ function useCollapsedGroups() {
 export function Cuentas() {
   const finance = useFinance()
   const pending = usePendingInstallments()
+  const today = useToday()
   const [creating, setCreating] = useState(false)
   const [collapsed, toggleGroup] = useCollapsedGroups()
 
   if (!finance) return <TabScreen title="Cuentas">{null}</TabScreen>
 
-  const usedPercent = (a: Account) =>
-    a.type === 'credit'
-      ? (creditUse(
+  const creditSummary = (a: Account): CreditSummary | null => {
+    if (a.type !== 'credit') return null
+    const pendingCents = pending?.get(a.id) ?? 0
+    const balanceAt = (date: string) =>
+      balancesByAccount(
+        [a],
+        finance.transactions.filter((t) => t.date <= date),
+        finance.transfers.filter((t) => t.date <= date),
+      ).get(a.id) ?? 0
+    const status = cardStatus(
+      a,
+      balanceAt,
+      finance.transactions,
+      today,
+      pendingCents,
+    )
+    if (status)
+      return {
+        usedPercent: status.usedPercent,
+        payment:
+          status.nextPaymentCents > 0
+            ? {
+                pendingCents: status.pendingPaymentCents,
+                date: status.nextPaymentDate,
+              }
+            : null,
+      }
+    return {
+      usedPercent:
+        creditUse(
           a.credit_limit_cents,
           finance.balances.get(a.id) ?? 0,
-          pending?.get(a.id) ?? 0,
-        )?.usedPercent ?? null)
-      : null
+          pendingCents,
+        )?.usedPercent ?? null,
+      payment: null,
+    }
+  }
 
   const breakdown = accountsBreakdown(finance.accounts, finance.balances)
   const archivedCount = finance.accounts.filter((a) => a.archived).length
@@ -220,7 +270,7 @@ export function Cuentas() {
                         key={a.id}
                         account={a}
                         cents={finance.balances.get(a.id) ?? 0}
-                        usedPercent={usedPercent(a)}
+                        credit={creditSummary(a)}
                       />
                     ))}
                   </ul>

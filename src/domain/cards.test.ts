@@ -133,3 +133,25 @@ describe('creditUse', () => {
     expect(s.installmentsPendingCents).toBe(250_000)
   })
 })
+
+describe('cardStatus: lo pendiente del periodo', () => {
+  it('resta los abonos hechos desde el corte', () => {
+    // Deuda al corte (23-oct) 30,000; luego gasto 5,000 y abono 20,000.
+    const balanceAt = (d: string) => (d <= '2026-10-23' ? -30000 : -15000)
+    const s = cardStatus(
+      card({}),
+      balanceAt,
+      [exp('2026-10-25', 5000)],
+      '2026-11-05',
+    )!
+    expect(s.nextPaymentCents).toBe(30000)
+    expect(s.paidSinceCutCents).toBe(20000)
+    expect(s.pendingPaymentCents).toBe(10000)
+  })
+
+  it('pagado completo deja 0 pendiente', () => {
+    const balanceAt = (d: string) => (d <= '2026-10-23' ? -30000 : 0)
+    const s = cardStatus(card({}), balanceAt, [], '2026-11-05')!
+    expect(s.pendingPaymentCents).toBe(0)
+  })
+})

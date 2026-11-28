@@ -6,7 +6,12 @@ import { clamped } from './recurring'
 export interface CardStatus {
   lastCut: string
   periodSpentCents: number
+  /** Deuda al corte: el pago del periodo. */
   nextPaymentCents: number
+  /** Lo abonado a la tarjeta desde el corte. */
+  paidSinceCutCents: number
+  /** Lo que falta pagar del periodo (pago del periodo − abonos). */
+  pendingPaymentCents: number
   nextPaymentDate: string
   /** Lo que aún falta cobrar de las compras a meses de la tarjeta. */
   installmentsPendingCents: number
@@ -87,11 +92,21 @@ export function cardStatus(
       periodSpentCents += t.amount_cents
   }
 
-  const use = creditUse(limit, balanceAt(today), installmentsPendingCents)!
+  const balanceToday = balanceAt(today)
+  const balanceAtCut = balanceAt(lastCut)
+  const nextPaymentCents = Math.max(0, -balanceAtCut)
+  // Abonos desde el corte: lo que subió el saldo además de lo gastado.
+  const paidSinceCutCents = Math.max(
+    0,
+    balanceToday - balanceAtCut + periodSpentCents,
+  )
+  const use = creditUse(limit, balanceToday, installmentsPendingCents)!
   return {
     lastCut,
     periodSpentCents,
-    nextPaymentCents: Math.max(0, -balanceAt(lastCut)),
+    nextPaymentCents,
+    paidSinceCutCents,
+    pendingPaymentCents: Math.max(0, nextPaymentCents - paidSinceCutCents),
     nextPaymentDate,
     installmentsPendingCents,
     ...use,
